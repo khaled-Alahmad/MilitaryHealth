@@ -24,12 +24,10 @@ public class GenericQueryHandler<TEntity, TDto> :
 
     public async Task<PagedResult<TDto>> Handle(GetEntitiesQuery<TEntity, TDto> request, CancellationToken ct)
     {
-        // افترض عندك قائمة الـ includes
         var includes = request.Includes ?? Array.Empty<Expression<Func<TEntity, object>>>();
 
-        return await _repo.GetPagedAsync(
+        var pagedEntities = await _repo.GetPagedAsync(
             request.Filter,
-            e => _mapper.Map<TDto>(e),
             request.SortBy,
             request.SortDesc,
             request.Page,
@@ -37,6 +35,23 @@ public class GenericQueryHandler<TEntity, TDto> :
             ct,
             includes
         );
+
+      
+        var entities = pagedEntities.Items.ToList();
+
+        var dtoItems = entities
+            .Select(e => _mapper.Map<TDto>(e))
+            .ToList();
+
+        return new PagedResult<TDto>
+        {
+            Items = dtoItems,
+            TotalCount = pagedEntities.TotalCount,
+            Page = pagedEntities.Page,
+            PageSize = pagedEntities.PageSize
+        };
     }
+
+
 
 }

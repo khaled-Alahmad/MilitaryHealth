@@ -18,9 +18,9 @@ public partial class EyeExamDto
 
     public string? ColorTest { get; set; }
 
-    public int? RefractionTypeID { get; set; }
+    //public int? RefractionTypeID { get; set; }
 
-    public decimal? RefractionValue { get; set; }
+    //public decimal? RefractionValue { get; set; }
 
     public string? OtherDiseases { get; set; }
 
@@ -32,7 +32,9 @@ public partial class EyeExamDto
 
     public virtual DoctorDto? Doctor { get; set; }
 
-    public virtual Application.DTOs.EyeExams.RefractionTypeDto? RefractionType { get; set; }
+    //public virtual Application.DTOs.EyeExams.RefractionTypeDto? RefractionType { get; set; }
+    public List<RefractionDto> Refractions { get; set; } = new(); // ✅ مهم
+
 
     public virtual Application.DTOs.EyeExams.ResultDto? Result { get; set; }
 }

@@ -37,16 +37,20 @@ namespace Api.Controllers
             }
 
             var query = new GetEntitiesQuery<EyeExam, EyeExamDto>(
-                filterExpr,
-                null,
-                sortBy,
-                sortDesc,
-                page,
-                pageSize
-                ,
-                    new Expression<Func<EyeExam, object>>[] { a => a.RefractionType, b => b.Result, c => c.Doctor }
+                     filterExpr,
+                     null,
+                     sortBy,
+                     sortDesc,
+                     page,
+                     pageSize,
+                     new Expression<Func<EyeExam, object>>[]
+                     {
+                        a => a.Refractions,  
+                        a => a.Result,
+                        a => a.Doctor
+                     }
+                 );
 
-            );
 
             var result = await _mediator.Send(query);
             return Ok(ApiResult.Ok(result, "Fetched all data!", 200, HttpContext.TraceIdentifier));

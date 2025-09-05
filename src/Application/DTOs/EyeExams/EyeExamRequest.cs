@@ -15,9 +15,9 @@ public partial class EyeExamRequest
 
     public string? ColorTest { get; set; }
 
-    public int? RefractionTypeID { get; set; }
+    //public int? RefractionTypeID { get; set; }
 
-    public decimal? RefractionValue { get; set; }
+    //public decimal? RefractionValue { get; set; }
 
     public string? OtherDiseases { get; set; }
 

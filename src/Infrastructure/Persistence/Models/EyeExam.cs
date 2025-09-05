@@ -13,11 +13,11 @@ public partial class EyeExam
 
     public string? Vision { get; set; }
 
+    public string? VisionLeft { get; set; }
+
+    public string? ColorTestLeft { get; set; }
+
     public string? ColorTest { get; set; }
-
-    public int? RefractionTypeID { get; set; }
-
-    public decimal? RefractionValue { get; set; }
 
     public string? OtherDiseases { get; set; }
 
@@ -29,7 +29,7 @@ public partial class EyeExam
 
     public virtual ICollection<FinalDecision> FinalDecisions { get; set; } = new List<FinalDecision>();
 
-    public virtual RefractionType? RefractionType { get; set; }
+    public virtual ICollection<Refraction> Refractions { get; set; } = new List<Refraction>();
 
     public virtual Result? Result { get; set; }
 }

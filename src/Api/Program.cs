@@ -21,7 +21,6 @@ var builder = WebApplication.CreateBuilder(args);
 // Serilog
 builder.Host.UseSerilog((ctx, lc) => lc.ReadFrom.Configuration(ctx.Configuration));
 
-// Controllers
 
 
 // Mapster Config & Mapper

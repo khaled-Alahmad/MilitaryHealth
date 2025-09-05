@@ -46,6 +46,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<OrthopedicExam> OrthopedicExams { get; set; }
 
+    public virtual DbSet<Refraction> Refractions { get; set; }
+
     public virtual DbSet<RefractionType> RefractionTypes { get; set; }
 
     public virtual DbSet<Result> Results { get; set; }
@@ -272,20 +274,21 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.ColorTest)
                 .HasMaxLength(20)
                 .IsUnicode(false);
+            entity.Property(e => e.ColorTestLeft)
+                .HasMaxLength(10)
+                .IsFixedLength();
             entity.Property(e => e.OtherDiseases).HasColumnType("text");
             entity.Property(e => e.Reason).HasColumnType("text");
-            entity.Property(e => e.RefractionValue).HasColumnType("decimal(5, 2)");
             entity.Property(e => e.Vision)
                 .HasMaxLength(50)
                 .IsUnicode(false);
+            entity.Property(e => e.VisionLeft)
+                .HasMaxLength(10)
+                .IsFixedLength();
 
             entity.HasOne(d => d.Doctor).WithMany(p => p.EyeExams)
                 .HasForeignKey(d => d.DoctorID)
                 .HasConstraintName("FK_EyeExam_Doctors");
-
-            entity.HasOne(d => d.RefractionType).WithMany(p => p.EyeExams)
-                .HasForeignKey(d => d.RefractionTypeID)
-                .HasConstraintName("FK__EyeExam__Refract__4E88ABD4");
 
             entity.HasOne(d => d.Result).WithMany(p => p.EyeExams)
                 .HasForeignKey(d => d.ResultID)
@@ -425,6 +428,23 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Result).WithMany(p => p.OrthopedicExams)
                 .HasForeignKey(d => d.ResultID)
                 .HasConstraintName("FK__Orthopedi__Resul__5DCAEF64");
+        });
+
+        modelBuilder.Entity<Refraction>(entity =>
+        {
+            entity.HasKey(e => new { e.RefractionID, e.RefractionTypeID });
+
+            entity.Property(e => e.RefractionID).ValueGeneratedOnAdd();
+            entity.Property(e => e.RefractionValue).HasColumnType("decimal(5, 2)");
+
+            entity.HasOne(d => d.EyeExam).WithMany(p => p.Refractions)
+                .HasForeignKey(d => d.EyeExamID)
+                .HasConstraintName("FK_Refractions_EyeExam");
+
+            entity.HasOne(d => d.RefractionType).WithMany(p => p.Refractions)
+                .HasForeignKey(d => d.RefractionTypeID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Refractions_RefractionTypes");
         });
 
         modelBuilder.Entity<RefractionType>(entity =>

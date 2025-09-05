@@ -29,8 +29,8 @@ public class ApplicantService : IApplicantService
                 DoctorID = e.DoctorID,
                 Vision = e.Vision,
                 ColorTest = e.ColorTest,
-                RefractionTypeID = e.RefractionTypeID,
-                RefractionValue = e.RefractionValue,
+                //RefractionTypeID = e.RefractionTypeID,
+                //RefractionValue = e.RefractionValue,
                 OtherDiseases = e.OtherDiseases,
                 ResultID = e.ResultID,
                 Reason = e.Reason

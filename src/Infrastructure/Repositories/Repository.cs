@@ -1,6 +1,8 @@
 ﻿using Application.Common.Extensions;
+using Application.DTOs;
 using Infrastructure.Persistence;
 using Infrastructure.Persistence.Models;
+using MapsterMapper;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
@@ -11,6 +13,7 @@ using System.Text.Json;
 public class Repository<TEntity> : IPagedRepository<TEntity> where TEntity : class
 {
     protected readonly AppDbContext _db;
+    //_mapper
     protected readonly DbSet<TEntity> _set;
     private readonly IHttpContextAccessor _httpContextAccessor;
 
@@ -306,17 +309,16 @@ public class Repository<TEntity> : IPagedRepository<TEntity> where TEntity : cla
         return Expression.Lambda<Func<TEntity, bool>>(body, param);
     }
 
-    public async Task<PagedResult<TDto>> GetPagedAsync<TDto>(
-            Expression<Func<TEntity, bool>>? filter,
-            Expression<Func<TEntity, TDto>>? selector,
-            string? sortBy,
-            bool sortDesc,
-            int page,
-            int pageSize,
-            CancellationToken ct = default,
-            params Expression<Func<TEntity, object>>[] includes)
+    public async Task<PagedResult<TEntity>> GetPagedAsync(
+      Expression<Func<TEntity, bool>>? filter = null,
+      string? sortBy = null,
+      bool sortDesc = false,
+      int page = 1,
+      int pageSize = 20,
+      CancellationToken ct = default,
+      params Expression<Func<TEntity, object>>[] includes)
     {
-        IQueryable<TEntity> query = _set;
+        IQueryable<TEntity> query = _set.AsNoTracking();
 
         if (filter != null)
             query = query.Where(filter);
@@ -328,23 +330,22 @@ public class Repository<TEntity> : IPagedRepository<TEntity> where TEntity : cla
             query = query.OrderByProperty(sortBy, sortDesc);
 
         var totalCount = await query.CountAsync(ct);
-        query = query.Skip((page - 1) * pageSize).Take(pageSize);
 
-        List<TDto> items;
+        var entities = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(ct);
 
-        if (selector != null)
-            items = await query.Select(selector).ToListAsync(ct);
-        else
-            items = query.Cast<TDto>().ToList(); // fallback
-
-        return new PagedResult<TDto>
+        return new PagedResult<TEntity>
         {
-            Items = items,
+            Items = entities,
             TotalCount = totalCount,
             Page = page,
             PageSize = pageSize
         };
     }
+
+
 
     public async Task<TEntity?> GetByFileNumberAsync(object id, CancellationToken ct = default)
     {

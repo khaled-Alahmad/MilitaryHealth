@@ -9,5 +9,5 @@ public partial class RefractionType
 
     public string Description { get; set; } = null!;
 
-    public virtual ICollection<EyeExam> EyeExams { get; set; } = new List<EyeExam>();
+    public virtual ICollection<Refraction> Refractions { get; set; } = new List<Refraction>();
 }
