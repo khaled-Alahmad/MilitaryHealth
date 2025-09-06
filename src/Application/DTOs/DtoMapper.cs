@@ -25,7 +25,25 @@ public static class DtoMapper
                 if (nav != null)
                 {
                     var navValue = nav.GetValue(entity);
-                    dp.SetValue(dto, navValue);
+                    // إذا كان نوع الخاصية هو collection من نوع DTO
+                    if (navValue is System.Collections.IEnumerable enumerable && dp.PropertyType.IsGenericType)
+                    {
+                        var dtoListType = dp.PropertyType.GetGenericArguments()[0];
+                        var list = (System.Collections.IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(dtoListType));
+                        foreach (var item in enumerable)
+                        {
+                            // استخدم Map بشكل recursive
+                            var mappedItem = typeof(DtoMapper).GetMethod("Map")
+                                .MakeGenericMethod(item.GetType(), dtoListType)
+                                .Invoke(null, new object[] { item });
+                            list.Add(mappedItem);
+                        }
+                        dp.SetValue(dto, list);
+                    }
+                    else
+                    {
+                        dp.SetValue(dto, navValue);
+                    }
                 }
             }
         }

@@ -1,5 +1,4 @@
-﻿
-using Application.DTOs;
+﻿using Application.DTOs;
 using Infrastructure.Persistence.Models;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -45,7 +44,7 @@ namespace Api.Controllers
                      pageSize,
                      new Expression<Func<EyeExam, object>>[]
                      {
-                        a => a.Refractions,  
+                        a => a.Refractions,
                         a => a.Result,
                         a => a.Doctor
                      }
@@ -60,11 +59,19 @@ namespace Api.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> Get(int id)
         {
-            var query = new GetEntityByIdQuery<EyeExam, EyeExamDto>(id);
+            var query = new GetEntityByIdQuery<EyeExam, EyeExamDto>(
+                id,
+                new Expression<Func<EyeExam, object>>[]
+                {
+                    a => a.Refractions,
+                    a => a.Result,
+                    a => a.Doctor
+                }
+            );
             var result = await _mediator.Send(query);
 
             if (result == null)
-                return NotFound(ApiResult.Fail("Doctor not found", 404, traceId: HttpContext.TraceIdentifier));
+                return NotFound(ApiResult.Fail("EyeExam not found", 404, traceId: HttpContext.TraceIdentifier));
 
             return Ok(ApiResult.Ok(result, "Fetched all data!", 200, HttpContext.TraceIdentifier));
         }
@@ -124,4 +131,4 @@ namespace Api.Controllers
             return Ok(ApiResult.Ok(null, "Entity deleted successfully", 200, HttpContext.TraceIdentifier));
         }
     }
-}
+}    

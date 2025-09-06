@@ -1,11 +1,12 @@
 ﻿using Application.DTOs;
+using System.Linq.Expressions;
 
 public interface IRepository<TEntity> where TEntity : class
 {
     IQueryable<TEntity> Query();
     Task<TEntity?> GetByFileNumberAsync(object id, CancellationToken ct = default);
 
-    Task<TEntity?> GetByIdAsync(object id, CancellationToken ct = default);
+    Task<TEntity?> GetByIdAsync(object id, CancellationToken ct = default, params Expression<Func<TEntity, object>>[] includes);
     Task AddAsync(TEntity entity, CancellationToken ct = default);
     Task UpdateAsync(TEntity entity, CancellationToken ct = default);
     Task DeleteAsync(TEntity entity, CancellationToken ct = default);

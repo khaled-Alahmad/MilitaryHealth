@@ -15,7 +15,5 @@ public partial class RefractionDto
 
     public int? EyeExamID { get; set; }
 
-    public virtual EyeExamDto? EyeExam { get; set; }
-
     public virtual RefractionTypeDto RefractionType { get; set; } = null!;
 }

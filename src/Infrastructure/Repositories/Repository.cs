@@ -157,7 +157,7 @@ public class Repository<TEntity> : IPagedRepository<TEntity> where TEntity : cla
     public IQueryable<TEntity> Query() => _set.AsNoTracking();
 
 
-    public async Task<TEntity?> GetByIdAsync(object id, CancellationToken ct = default)
+    public async Task<TEntity?> GetByIdAsync(object id, CancellationToken ct = default, params Expression<Func<TEntity, object>>[] includes)
     {
         var entityType = _db.Model.FindEntityType(typeof(TEntity));
         if (entityType == null)
@@ -169,7 +169,43 @@ public class Repository<TEntity> : IPagedRepository<TEntity> where TEntity : cla
 
         if (keyProperties.Count == 1)
         {
-            return await _set.FindAsync(new object[] { id }, ct);
+            var query = _set.AsQueryable();
+            
+            if (includes != null && includes.Any())
+                query = includes.Aggregate(query, (current, include) => current.Include(include));
+                
+            var keyProp = keyProperties.First();
+            var targetType = keyProp.ClrType;
+            
+            object? converted;
+            try
+            {
+                if (targetType == typeof(Guid))
+                {
+                    converted = Guid.TryParse(id?.ToString(), out var g) ? g : throw new ArgumentException("Invalid Guid value.");
+                }
+                else if (targetType.IsEnum)
+                {
+                    converted = Enum.Parse(targetType, id!.ToString()!, ignoreCase: true);
+                }
+                else
+                {
+                    converted = Convert.ChangeType(id, targetType);
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new ArgumentException($"Unable to convert id to key type {targetType.Name}: {ex.Message}", ex);
+            }
+
+            var param = Expression.Parameter(typeof(TEntity), "e");
+            var efPropertyMethod = typeof(EF).GetMethod("Property", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)!.MakeGenericMethod(targetType);
+            var propertyAccess = Expression.Call(efPropertyMethod, param, Expression.Constant(keyProp.Name));
+            var constant = Expression.Constant(converted, targetType);
+            var body = Expression.Equal(propertyAccess, constant);
+            var lambda = Expression.Lambda<Func<TEntity, bool>>(body, param);
+
+            return await query.AsNoTracking().FirstOrDefaultAsync(lambda, ct);
         }
 
         if (id is object[] keys && keys.Length == keyProperties.Count)
@@ -213,6 +249,11 @@ public class Repository<TEntity> : IPagedRepository<TEntity> where TEntity : cla
                 throw new ArgumentException($"Unable to convert id to key type {targetType.Name}: {ex.Message}", ex);
             }
 
+            var query = _set.AsQueryable();
+            
+            if (includes != null && includes.Any())
+                query = includes.Aggregate(query, (current, include) => current.Include(include));
+
             var param = Expression.Parameter(typeof(TEntity), "e");
             var efPropertyMethod = typeof(EF).GetMethod("Property", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)!.MakeGenericMethod(targetType);
             var propertyAccess = Expression.Call(efPropertyMethod, param, Expression.Constant(candidateKey.Name));
@@ -220,13 +261,13 @@ public class Repository<TEntity> : IPagedRepository<TEntity> where TEntity : cla
             var body = Expression.Equal(propertyAccess, constant);
             var lambda = Expression.Lambda<Func<TEntity, bool>>(body, param);
 
-            return await _set.AsNoTracking().FirstOrDefaultAsync(lambda, ct);
+            return await query.AsNoTracking().FirstOrDefaultAsync(lambda, ct);
         }
 
         throw new ArgumentException($"Entity {typeof(TEntity).Name} has a composite key of {keyProperties.Count} values. Pass an object[] with the correct number of key values or provide a matching single key property (e.g. {typeof(TEntity).Name}ID).");
     }
 
-    private static Expression<Func< TEntity, bool>>? BuildFilter(Dictionary<string, string>? filters)
+    public static Expression<Func<TEntity, bool>>? BuildFilter(Dictionary<string, string>? filters)
     {
         if (filters == null || !filters.Any())
             return null;
@@ -309,6 +350,16 @@ public class Repository<TEntity> : IPagedRepository<TEntity> where TEntity : cla
         return Expression.Lambda<Func<TEntity, bool>>(body, param);
     }
 
+    private static Expression<Func<TEntity, bool>> CombineFilters(Expression<Func<TEntity, bool>> filter1, Expression<Func<TEntity, bool>> filter2)
+    {
+        var param = Expression.Parameter(typeof(TEntity), "e");
+        var body = Expression.AndAlso(
+            Expression.Invoke(filter1, param),
+            Expression.Invoke(filter2, param)
+        );
+        return Expression.Lambda<Func<TEntity, bool>>(body, param);
+    }
+
     public async Task<PagedResult<TEntity>> GetPagedAsync(
       Expression<Func<TEntity, bool>>? filter = null,
       string? sortBy = null,
@@ -323,8 +374,23 @@ public class Repository<TEntity> : IPagedRepository<TEntity> where TEntity : cla
         if (filter != null)
             query = query.Where(filter);
 
-        if (includes != null && includes.Any())
+        // دعم ThenInclude لـ EyeExam -> Refractions -> RefractionType
+        if (typeof(TEntity) == typeof(EyeExam))
+        {
+            var eyeExamQuery = query as IQueryable<EyeExam>;
+            if (eyeExamQuery != null)
+            {
+                query = (IQueryable<TEntity>)eyeExamQuery
+                    .Include(e => e.Refractions)
+                    .ThenInclude(r => r.RefractionType)
+                    .Include(e => e.Result)
+                    .Include(e => e.Doctor);
+            }
+        }
+        else if (includes != null && includes.Any())
+        {
             query = includes.Aggregate(query, (current, include) => current.Include(include));
+        }
 
         if (!string.IsNullOrEmpty(sortBy))
             query = query.OrderByProperty(sortBy, sortDesc);

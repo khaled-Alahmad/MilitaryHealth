@@ -18,7 +18,8 @@ public class GenericQueryHandler<TEntity, TDto> :
 
     public async Task<TDto?> Handle(GetEntityByIdQuery<TEntity, TDto> request, CancellationToken ct)
     {
-        var entity = await _repo.GetByIdAsync(request.Id, ct);
+        var includes = request.Includes ?? Array.Empty<Expression<Func<TEntity, object>>>();
+        var entity = await _repo.GetByIdAsync(request.Id, ct, includes);
         return entity == null ? default : _mapper.Map<TDto>(entity);
     }
 
