@@ -13,10 +13,12 @@ using System.Threading.Tasks;
 
 public class FileUploadController : ControllerBase
 {
+    private readonly IWebHostEnvironment _env;
     private readonly ILogger<FileUploadController> _logger;
 
-    public FileUploadController(ILogger<FileUploadController> logger)
+    public FileUploadController(IWebHostEnvironment env, ILogger<FileUploadController> logger)
     {
+        _env = env;
         _logger = logger;
     }
 
@@ -26,29 +28,27 @@ public class FileUploadController : ControllerBase
     [HttpPost("upload")]
     [Consumes("multipart/form-data")]
 
-    public async Task<IActionResult> UploadFile( [FromForm] UploadFile file)
+    public async Task<IActionResult> UploadFile([FromForm] UploadFile file)
     {
         if (file == null || file.File.Length == 0)
             return BadRequest(new { succeeded = false, message = "No file uploaded" });
 
         try
         {
-            // مسار ثابت داخل المشروع نفسه
-            var projectRoot = Directory.GetCurrentDirectory(); // جذر المشروع
-            var uploadRoot = Path.Combine(projectRoot, "Files"); // مجلد Files
-            var dateFolder = DateTime.UtcNow.ToString("yyyyMMdd");
-            var targetFolder = Path.Combine(uploadRoot, dateFolder);
-
-            Directory.CreateDirectory(targetFolder);
+            var uploadRoot = Path.Combine(_env.WebRootPath, "Files");
+            if (!Directory.Exists(uploadRoot))
+            {
+                Directory.CreateDirectory(uploadRoot);
+            }
 
             var ext = Path.GetExtension(file.File.FileName);
             var uniqueName = $"{Guid.NewGuid():N}{ext}";
-            var fullPath = Path.Combine(targetFolder, uniqueName);
+            var fullPath = Path.Combine(uploadRoot, uniqueName);
 
             await using var fs = new FileStream(fullPath, FileMode.Create);
             await file.File.CopyToAsync(fs);
 
-            var relativePath = Path.Combine("Files", dateFolder, uniqueName).Replace("\\", "/");
+            var relativePath = Path.Combine("Files", uniqueName).Replace("\\", "/");
             return Ok(new { succeeded = true, path = relativePath });
         }
         catch (Exception ex)

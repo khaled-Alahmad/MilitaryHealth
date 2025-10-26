@@ -34,6 +34,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<Doctor> Doctors { get; set; }
 
+    public virtual DbSet<EarClinicExam> EarClinicExams { get; set; }
+
     public virtual DbSet<EyeExam> EyeExams { get; set; }
 
     public virtual DbSet<FinalDecision> FinalDecisions { get; set; }
@@ -70,6 +72,10 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.FileNumber, "UQ__Applican__8BD00B71D756A649").IsUnique();
 
+            entity.Property(e => e.AssociateNumber)
+                .HasMaxLength(50)
+                .IsUnicode(false)
+                .HasDefaultValue("غير محدد");
             entity.Property(e => e.BMI).HasColumnType("decimal(5, 2)");
             entity.Property(e => e.BloodPressure)
                 .HasMaxLength(20)
@@ -260,6 +266,41 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("FK__Doctors__Special__3D5E1FD2");
         });
 
+        modelBuilder.Entity<EarClinicExam>(entity =>
+        {
+            entity.HasKey(e => e.EarClinicID);
+
+            entity.ToTable("EarClinicExam");
+
+            entity.Property(e => e.ApplicantFileNumber)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.LeftEar).HasMaxLength(50);
+            entity.Property(e => e.LeftHearing).HasMaxLength(50);
+            entity.Property(e => e.LeftNose).HasMaxLength(50);
+            entity.Property(e => e.LeftString).HasMaxLength(50);
+            entity.Property(e => e.LeftTympanicMembrane).HasMaxLength(50);
+            entity.Property(e => e.LeftWhisperTest).HasMaxLength(50);
+            entity.Property(e => e.Mouth).HasMaxLength(50);
+            entity.Property(e => e.OtherDiseases).HasColumnType("text");
+            entity.Property(e => e.Reason).HasColumnType("text");
+            entity.Property(e => e.Resonators).HasMaxLength(50);
+            entity.Property(e => e.RightEar).HasMaxLength(50);
+            entity.Property(e => e.RightHearing).HasMaxLength(50);
+            entity.Property(e => e.RightNose).HasMaxLength(50);
+            entity.Property(e => e.RightString).HasMaxLength(50);
+            entity.Property(e => e.RightTympanicMembrane).HasMaxLength(50);
+            entity.Property(e => e.RightWhisperTest).HasMaxLength(50);
+
+            entity.HasOne(d => d.Doctor).WithMany(p => p.EarClinicExams)
+                .HasForeignKey(d => d.DoctorID)
+                .HasConstraintName("FK_EarClinicExam_Doctors");
+
+            entity.HasOne(d => d.Result).WithMany(p => p.EarClinicExams)
+                .HasForeignKey(d => d.ResultID)
+                .HasConstraintName("FK_EarClinicExam_Results");
+        });
+
         modelBuilder.Entity<EyeExam>(entity =>
         {
             entity.HasKey(e => e.EyeExamID).HasName("PK__EyeExam__C99F26ADECA9F5D7");
@@ -297,7 +338,7 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<FinalDecision>(entity =>
         {
-            entity.HasKey(e => new { e.DecisionID, e.OrthopedicExamID, e.SurgicalExamID, e.InternalExamID, e.EyeExamID }).HasName("PK__FinalDec__C0F28966CDD395EE");
+            entity.HasKey(e => new { e.DecisionID, e.OrthopedicExamID, e.SurgicalExamID, e.InternalExamID, e.EyeExamID, e.EarClinicID });
 
             entity.ToTable("FinalDecision");
 
@@ -311,6 +352,11 @@ public partial class AppDbContext : DbContext
                 .HasMaxLength(50)
                 .IsUnicode(false);
             entity.Property(e => e.Reason).HasColumnType("text");
+
+            entity.HasOne(d => d.EarClinic).WithMany(p => p.FinalDecisions)
+                .HasForeignKey(d => d.EarClinicID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_FinalDecision_EarClinicExam");
 
             entity.HasOne(d => d.EyeExam).WithMany(p => p.FinalDecisions)
                 .HasForeignKey(d => d.EyeExamID)

@@ -11,7 +11,9 @@ public partial class EyeExamDto
     public int? ApplicantID { get; set; }
 
     public string ApplicantFileNumber { get; set; } = null!;
+    public string? VisionLeft { get; set; }
 
+    public string? ColorTestLeft { get; set; }
     public int? DoctorID { get; set; }
 
     public string? Vision { get; set; }

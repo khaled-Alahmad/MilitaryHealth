@@ -14,6 +14,7 @@ public partial class FinalDecisionRequest
     public int InternalExamID { get; set; }
 
     public int EyeExamID { get; set; }
+   public int EarClinicID { get; set; } 
 
 
     public string ApplicantFileNumber { get; set; } = null!;

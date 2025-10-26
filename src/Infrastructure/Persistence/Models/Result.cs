@@ -9,6 +9,8 @@ public partial class Result
 
     public string Description { get; set; } = null!;
 
+    public virtual ICollection<EarClinicExam> EarClinicExams { get; set; } = new List<EarClinicExam>();
+
     public virtual ICollection<EyeExam> EyeExams { get; set; } = new List<EyeExam>();
 
     public virtual ICollection<FinalDecision> FinalDecisions { get; set; } = new List<FinalDecision>();

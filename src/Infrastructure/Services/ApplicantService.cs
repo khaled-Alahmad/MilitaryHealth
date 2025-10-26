@@ -29,8 +29,15 @@ public class ApplicantService : IApplicantService
                 DoctorID = e.DoctorID,
                 Vision = e.Vision,
                 ColorTest = e.ColorTest,
-                //RefractionTypeID = e.RefractionTypeID,
-                //RefractionValue = e.RefractionValue,
+                Refractions = e.Refractions!.Select(r => new RefractionDto
+                {
+                    RefractionID = r.RefractionID,
+                    EyeExamID = r.EyeExamID,
+                 IsLeft = r.IsLeft,
+                    RefractionTypeID = r.RefractionTypeID,
+                    RefractionValue = r.RefractionValue
+                }).ToList(),
+
                 OtherDiseases = e.OtherDiseases,
                 ResultID = e.ResultID,
                 Reason = e.Reason
@@ -72,7 +79,71 @@ public class ApplicantService : IApplicantService
                 Reason = e.Reason
             })
             .FirstOrDefaultAsync(ct);
+        var earClinicExam = await _db.EarClinicExams.AsNoTracking()
+            .Where(e => e.ApplicantFileNumber == id)
+            .Select(e => new EarClinicExamDto
+            {
+                EarClinicID = e.EarClinicID,
+                ApplicantFileNumber = e.ApplicantFileNumber,
+                DoctorID = e.DoctorID,
+                RightEar = e.RightEar,
+                LeftEar = e.LeftEar,
+                ResultID = e.ResultID,
+                Reason = e.Reason,
+                Doctor = new DoctorDto
+                {
+                    DoctorID = e.Doctor!.DoctorID,
+                    FullName = e.Doctor.FullName,
+                    SpecializationID= e.Doctor.SpecializationID,
+                    Code = e.Doctor.Code,
+                },
+                isLeftHugeMates= e.isLeftHugeMates,
+                isRightHugeMates= e.isRightHugeMates,
+                LeftHearing= e.LeftHearing,
+                LeftNose= e.LeftNose,
+                LeftString= e.LeftString,
+                LeftTympanicMembrane= e.LeftTympanicMembrane,
+                Mouth= e.Mouth,
+                OtherDiseases= e.OtherDiseases,
+                Resonators= e.Resonators,
+                RightHearing= e.RightHearing,
+                RightNose= e.RightNose,
+                RightString= e.RightString,
+                RightTympanicMembrane= e.RightTympanicMembrane,
+                LeftWhisperTest= e.LeftWhisperTest,
+                RightWhisperTest = e.RightWhisperTest
+                ,
+               Result=new ResultDto
+               {
+                ResultID= e.Result!.ResultID,
+                Description= e.Result.Description,
+               }
 
+            })
+            .FirstOrDefaultAsync(ct);
+        var finalDecision = await _db.FinalDecisions.AsNoTracking()
+            .Where(e=>e.ApplicantFileNumber==id)
+            .Select(e=> new FinalDecisionDto
+            {
+                ApplicantFileNumber=e.ApplicantFileNumber,
+                DecisionID=e.DecisionID,
+                InternalExamID=e.InternalExamID,
+                EyeExamID=e.EyeExamID,
+                OrthopedicExamID=e.OrthopedicExamID,
+                SurgicalExamID=e.SurgicalExamID,
+                ResultID=e.ResultID,
+                Reason=e.Reason,
+                PostponeDuration=e.PostponeDuration,
+                DecisionDate=e.DecisionDate,
+                Result=new Application.DTOs.EyeExams.ResultDto
+                {
+                    ResultID=e.Result!.ResultID,
+                    Description=e.Result.Description,
+                },
+                
+
+            })
+            .FirstOrDefaultAsync(ct);
         var surgicalExam = await _db.SurgicalExams.AsNoTracking()
             .Where(e => e.ApplicantFileNumber == id)
             .Select(e => new SurgicalExamDto
@@ -136,7 +207,11 @@ public class ApplicantService : IApplicantService
             EyeExam = eyeExam,
             InternalExam = internalExam,
             OrthopedicExamDto = orthopedicExam,
-            SurgicalExam = surgicalExam
+            SurgicalExam = surgicalExam,
+            finalDecision = finalDecision,
+            AssociateNumber= applicant.AssociateNumber,
+            EarClinic=earClinicExam
+            
         };
     }
 

@@ -9,6 +9,8 @@ public partial class Applicant
 
     public string FileNumber { get; set; } = null!;
 
+    public string AssociateNumber { get; set; } = null!;
+
     public string FullName { get; set; } = null!;
 
     public int? MaritalStatusID { get; set; }

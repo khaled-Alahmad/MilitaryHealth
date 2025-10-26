@@ -19,6 +19,8 @@ public partial class Doctor
 
     public virtual ContractType? ContractType { get; set; }
 
+    public virtual ICollection<EarClinicExam> EarClinicExams { get; set; } = new List<EarClinicExam>();
+
     public virtual ICollection<EyeExam> EyeExams { get; set; } = new List<EyeExam>();
 
     public virtual ICollection<InternalExam> InternalExams { get; set; } = new List<InternalExam>();

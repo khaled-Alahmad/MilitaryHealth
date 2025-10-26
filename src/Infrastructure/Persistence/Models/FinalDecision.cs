@@ -15,6 +15,8 @@ public partial class FinalDecision
 
     public int EyeExamID { get; set; }
 
+    public int EarClinicID { get; set; }
+
     public string ApplicantFileNumber { get; set; } = null!;
 
     public int? ResultID { get; set; }
@@ -24,6 +26,8 @@ public partial class FinalDecision
     public string? PostponeDuration { get; set; }
 
     public DateOnly DecisionDate { get; set; }
+
+    public virtual EarClinicExam EarClinic { get; set; } = null!;
 
     public virtual EyeExam EyeExam { get; set; } = null!;
 

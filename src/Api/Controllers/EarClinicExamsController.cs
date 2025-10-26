@@ -1,5 +1,4 @@
-﻿
-using Application.DTOs;
+﻿using Application.DTOs;
 using Infrastructure.Persistence.Models;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -9,13 +8,13 @@ using System.Linq.Expressions;
 namespace Api.Controllers
 {
     [ApiController]
-    [Route("api/Investigations")]
+    [Route("api/EarClinicExams")]
     [Authorize(Roles = "Admin,Receptionist,Doctor,Supervisor,Diwan")]
-    public class InvestigationsController : ControllerBase
+    public class EarClinicExamsController : ControllerBase
     {
         private readonly IMediator _mediator;
 
-        public InvestigationsController(IMediator mediator)
+        public EarClinicExamsController(IMediator mediator)
         {
             _mediator = mediator;
         }
@@ -23,36 +22,28 @@ namespace Api.Controllers
         // GET: api/Doctors
         [HttpGet]
         public async Task<IActionResult> Get(
-            [FromQuery] string? filter = null,
-            [FromQuery] string? sortBy = null,
-            [FromQuery] bool sortDesc = false,
-            [FromQuery] int page = 1,
-            [FromQuery] int? specializationId = null,
-            [FromQuery] Dictionary<string, string>? filterDict = null,
-            [FromQuery] int pageSize = 20)
+         [FromQuery] string? filter = null,
+         [FromQuery] string? sortBy = null,
+         [FromQuery] bool sortDesc = false,
+         [FromQuery] int page = 1,
+
+                     [FromQuery] Dictionary<string, string>? filterDict = null,
+         [FromQuery] int pageSize = 20)
         {
-            Expression<Func<Investigation, bool>>? filterExpr = null;
+            Expression<Func<EarClinicExam, bool>>? filterExpr = null;
 
             if (!string.IsNullOrWhiteSpace(filter))
             {
-                filterExpr = a => a.Result.Contains(filter!) || a.ApplicantFileNumber.Contains(filter!);
+                filterExpr = a => a.Reason.Contains(filter!) || a.ApplicantFileNumber.Contains(filter!);
             }
-            
-            // Filter by Doctor's SpecializationID
-            if (specializationId.HasValue)
-            {
-                Expression<Func<Investigation, bool>> specExpr = i => i.Doctor.SpecializationID == specializationId.Value;
-                filterExpr = filterExpr != null ? Repository<Investigation>.CombineFilters(filterExpr, specExpr) : specExpr;
-            }
-            
             if (filterDict != null && filterDict.Any())
             {
-                var dictExpr = Repository<Investigation>.BuildFilter(filterDict);
+                var dictExpr = Repository<EarClinicExam>.BuildFilter(filterDict);
                 if (dictExpr != null)
-                    filterExpr = filterExpr != null ? Repository<Investigation>.CombineFilters(filterExpr, dictExpr) : dictExpr;
+                    filterExpr = filterExpr != null ? Repository<EarClinicExam>.CombineFilters(filterExpr, dictExpr) : dictExpr;
             }
 
-            var query = new GetEntitiesQuery<Investigation, InvestigationDto>(
+            var query = new GetEntitiesQuery<EarClinicExam, EarClinicExamDto>(
                 filterExpr,
                 null,
                 sortBy,
@@ -60,7 +51,7 @@ namespace Api.Controllers
                 page,
                 pageSize
                 ,
-                    new Expression<Func<Investigation, object>>[] { c => c.Doctor }
+                    new Expression<Func<EarClinicExam, object>>[] { c => c.Doctor,e=>e.Result }
 
             );
 
@@ -72,11 +63,18 @@ namespace Api.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> Get(int id)
         {
-            var query = new GetEntityByIdQuery<Investigation, InvestigationDto>(id);
+            var query = new GetEntityByIdQuery<EarClinicExam, EarClinicExamDto>(
+                id,
+                new Expression<Func<EarClinicExam, object>>[]
+                {
+                    a => a.Result,
+                    a => a.Doctor
+                }
+            );
             var result = await _mediator.Send(query);
 
             if (result == null)
-                return NotFound(ApiResult.Fail("Doctor not found", 404, traceId: HttpContext.TraceIdentifier));
+                return NotFound(ApiResult.Fail("EyeExam not found", 404, traceId: HttpContext.TraceIdentifier));
 
             return Ok(ApiResult.Ok(result, "Fetched all data!", 200, HttpContext.TraceIdentifier));
         }
@@ -84,7 +82,7 @@ namespace Api.Controllers
 
         // POST: api/Doctors
         [HttpPost]
-        public async Task<IActionResult> Post([FromBody] InvestigationRequest dto)
+        public async Task<IActionResult> Post([FromBody] EarClinicExamRequest dto)
         {
             if (!ModelState.IsValid)
             {
@@ -97,14 +95,14 @@ namespace Api.Controllers
 
                 return BadRequest(ApiResult.Fail("Validation errors", 400, errors, HttpContext.TraceIdentifier));
             }
-            var command = new CreateEntityCommand<Investigation, InvestigationRequest>(dto);
+            var command = new CreateEntityCommand<EarClinicExam, EarClinicExamRequest>(dto);
             var result = await _mediator.Send(command);
             return Ok(ApiResult.Ok(result, "Entity created successfully!", 200, HttpContext.TraceIdentifier));
         }
 
         // PUT: api/Doctors/5
         [HttpPut("{id}")]
-        public async Task<IActionResult> Put(int id, [FromBody] InvestigationRequest dto)
+        public async Task<IActionResult> Put(int id, [FromBody] EarClinicExamRequest dto)
         {
             if (!ModelState.IsValid)
             {
@@ -117,7 +115,7 @@ namespace Api.Controllers
 
                 return BadRequest(ApiResult.Fail("Validation errors", 400, errors, HttpContext.TraceIdentifier));
             }
-            var command = new UpdateEntityCommand<Investigation, InvestigationRequest>(id, dto);
+            var command = new UpdateEntityCommand<EarClinicExam, EarClinicExamRequest>(id, dto);
             var result = await _mediator.Send(command);
 
             return Ok(ApiResult.Ok(result, "Entity updated successfully!", 200, HttpContext.TraceIdentifier));
@@ -128,7 +126,7 @@ namespace Api.Controllers
         public async Task<IActionResult> Delete(int id)
         {
 
-            var command = new DeleteEntityCommand<Investigation>(id);
+            var command = new DeleteEntityCommand<EarClinicExam>(id);
             var success = await _mediator.Send(command);
             if (!success)
                 return NotFound(ApiResult.Fail("Entity not found", 404, null, HttpContext.TraceIdentifier));
@@ -136,4 +134,4 @@ namespace Api.Controllers
             return Ok(ApiResult.Ok(null, "Entity deleted successfully", 200, HttpContext.TraceIdentifier));
         }
     }
-}
+}    

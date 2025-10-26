@@ -33,6 +33,7 @@ public class ApplicantRequest
     [Required(ErrorMessage = "Tattoo is required")]
 
     public bool? Tattoo { get; set; }
+    public string AssociateNumber { get; set; }
 
     public string? DistinctiveMarks { get; set; }
     public MaritalStatusDto? MaritalStatus { get; set; }

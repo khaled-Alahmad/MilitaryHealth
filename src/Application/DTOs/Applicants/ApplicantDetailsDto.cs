@@ -8,7 +8,8 @@ public class ApplicantDetailsDto
     public string? FileNumber { get; set; } = null!;
 
     public string FullName { get; set; } = null!;
-
+    //AssociateNumber
+    public string AssociateNumber { get; set; }
     public int? MaritalStatusID { get; set; }
 
     public string? Job { get; set; }
@@ -34,5 +35,7 @@ public class ApplicantDetailsDto
     public InternalExamDto InternalExam { get; set; }
     public InvestigationDto Investigation { get; set; }
     public ConsultationDto Consultation { get; set; }
+    public FinalDecisionDto finalDecision { get; set; }
+    public EarClinicExamDto EarClinic { get; set; }
 
 }

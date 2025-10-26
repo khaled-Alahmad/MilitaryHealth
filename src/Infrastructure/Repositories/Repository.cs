@@ -305,16 +305,47 @@ public class Repository<TEntity> : IPagedRepository<TEntity> where TEntity : cla
                 mode = "to";
             }
 
-            var prop = typeof(TEntity).GetProperty(fieldName, BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance);
+            // Support nested properties like "Doctor.SpecializationID"
+            Expression left = param;
+            Type currentType = typeof(TEntity);
+            PropertyInfo? prop = null;
+            
+            var parts = fieldName.Split('.');
+            foreach (var part in parts)
+            {
+                prop = currentType.GetProperty(part, BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance);
+                if (prop == null) break;
+                
+                left = Expression.Property(left, prop);
+                currentType = prop.PropertyType;
+            }
+            
+            // If property not found and no dots in fieldName, try common navigation properties
+            if (prop == null && !fieldName.Contains('.'))
+            {
+                // Try Doctor.{FieldName} as fallback
+                var doctorProp = typeof(TEntity).GetProperty("Doctor", BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance);
+                if (doctorProp != null)
+                {
+                    var nestedProp = doctorProp.PropertyType.GetProperty(fieldName, BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance);
+                    if (nestedProp != null)
+                    {
+                        left = Expression.Property(Expression.Property(param, doctorProp), nestedProp);
+                        prop = nestedProp;
+                    }
+                }
+            }
+            
             if (prop == null) continue;
 
-            var left = Expression.Property(param, prop);
             Expression? condition = null;
 
             // محاولة تحويل value إلى نوع الحقل
-            object? typedValue = Convert.ChangeType(value, Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType);
+            var underlyingType = Nullable.GetUnderlyingType(prop.PropertyType);
+            object? typedValue = Convert.ChangeType(value, underlyingType ?? prop.PropertyType);
 
-            var right = Expression.Constant(typedValue);
+            // Create constant with the correct type (nullable or non-nullable)
+            var right = Expression.Constant(typedValue, prop.PropertyType);
 
             switch (mode)
             {
@@ -350,14 +381,34 @@ public class Repository<TEntity> : IPagedRepository<TEntity> where TEntity : cla
         return Expression.Lambda<Func<TEntity, bool>>(body, param);
     }
 
-    private static Expression<Func<TEntity, bool>> CombineFilters(Expression<Func<TEntity, bool>> filter1, Expression<Func<TEntity, bool>> filter2)
+    public static Expression<Func<TEntity, bool>> CombineFilters(
+        Expression<Func<TEntity, bool>> filter1,
+        Expression<Func<TEntity, bool>> filter2)
     {
+        // Unify both expressions to the same parameter
         var param = Expression.Parameter(typeof(TEntity), "e");
-        var body = Expression.AndAlso(
-            Expression.Invoke(filter1, param),
-            Expression.Invoke(filter2, param)
-        );
+
+        var left = new ReplaceParameterVisitor(filter1.Parameters[0], param).Visit(filter1.Body)!;
+        var right = new ReplaceParameterVisitor(filter2.Parameters[0], param).Visit(filter2.Body)!;
+
+        var body = Expression.AndAlso(left, right);
         return Expression.Lambda<Func<TEntity, bool>>(body, param);
+    }
+
+    // Helper visitor to rewrite parameters
+    private sealed class ReplaceParameterVisitor : ExpressionVisitor
+    {
+        private readonly ParameterExpression _from;
+        private readonly ParameterExpression _to;
+
+        public ReplaceParameterVisitor(ParameterExpression from, ParameterExpression to)
+        {
+            _from = from;
+            _to = to;
+        }
+
+        protected override Expression VisitParameter(ParameterExpression node)
+            => node == _from ? _to : base.VisitParameter(node);
     }
 
     public async Task<PagedResult<TEntity>> GetPagedAsync(

@@ -21,20 +21,28 @@ namespace Api.Controllers
             _mediator = mediator;
         }
 
-        // GET: api/Doctors
+        // GET: api/Doctorsk
         [HttpGet]
         public async Task<IActionResult> Get(
-            [FromQuery] string? filter = null,
-            [FromQuery] string? sortBy = null,
-            [FromQuery] bool sortDesc = false,
-            [FromQuery] int page = 1,
-            [FromQuery] int pageSize = 20)
+     [FromQuery] string? filter = null,
+     [FromQuery] string? sortBy = null,
+     [FromQuery] bool sortDesc = false,
+     [FromQuery] int page = 1,
+
+                 [FromQuery] Dictionary<string, string>? filterDict = null,
+     [FromQuery] int pageSize = 20)
         {
             Expression<Func<Consultation, bool>>? filterExpr = null;
 
             if (!string.IsNullOrWhiteSpace(filter))
             {
                 filterExpr = a => a.Result.Contains(filter!) || a.ApplicantFileNumber.Contains(filter!);
+            }
+            if (filterDict != null && filterDict.Any())
+            {
+                var dictExpr = Repository<Consultation>.BuildFilter(filterDict);
+                if (dictExpr != null)
+                    filterExpr = filterExpr != null ? Repository<Consultation>.CombineFilters(filterExpr, dictExpr) : dictExpr;
             }
 
             var query = new GetEntitiesQuery<Consultation, ConsultationDto>(
