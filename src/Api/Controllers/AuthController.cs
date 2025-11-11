@@ -74,6 +74,8 @@ public class AuthController : ControllerBase
         var result = await _mediator.Send(new RegisterCommand(request), ct);
         return Ok(result);
     }
+    [AllowAnonymous]
+
     [HttpPost("logout")]
     public async Task<IActionResult> Logout([FromBody] LogoutRequest request)
     {
