@@ -10,6 +10,15 @@ public class ApplicantDetailsDto
     public string FullName { get; set; } = null!;
     //AssociateNumber
     public string AssociateNumber { get; set; }
+
+    public string? MotherName { get; set; }
+
+    public DateTime? DateOfBirth { get; set; }
+
+    public string? RecruitmentCenter { get; set; }
+
+    public string? BloodType { get; set; }
+
     public int? MaritalStatusID { get; set; }
 
     public string? Job { get; set; }
@@ -27,6 +36,8 @@ public class ApplicantDetailsDto
 
     public string? DistinctiveMarks { get; set; }
     public DateTime? CreatedAt { get; set; }
+
+    public int? QueueNumber { get; set; }
 
     public MaritalStatusDto? MaritalStatus { get; set; }
     public EyeExamDto EyeExam { get; set; }

@@ -59,7 +59,6 @@ public class ApplicantService : IApplicantService
                 Blood = e.Blood,
                 Joints = e.Joints,
                 Kidney = e.Kidney,
-                Hearing = e.Hearing,
                 Skin = e.Skin,
                 ResultID = e.ResultID,
                 Reason = e.Reason
@@ -182,7 +181,7 @@ public class ApplicantService : IApplicantService
                 Attachment=e.Attachment,
                 ConsultationType= e.ConsultationType,
                 DoctorID = e.DoctorID,
-                ReferredDoctor = e.ReferredDoctor,
+                ReferralReason = e.ReferralReason,
                 Result = e.Result
             })
             .FirstOrDefaultAsync(ct);

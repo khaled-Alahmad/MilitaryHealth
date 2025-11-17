@@ -71,6 +71,9 @@ public partial class AppDbContext : DbContext
             entity.HasKey(e => e.ApplicantID).HasName("PK__Applican__39AE9148E8810501");
 
             entity.HasIndex(e => e.FileNumber, "UQ__Applican__8BD00B71D756A649").IsUnique();
+            
+            // Configure trigger to avoid OUTPUT clause issues
+            entity.ToTable(tb => tb.HasTrigger("trg_GenerateQueueNumber"));
 
             entity.Property(e => e.AssociateNumber)
                 .HasMaxLength(50)
@@ -88,11 +91,22 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.FullName)
                 .HasMaxLength(100)
                 .IsUnicode(false);
+            entity.Property(e => e.MotherName)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.DateOfBirth).HasColumnType("datetime");
+            entity.Property(e => e.RecruitmentCenter)
+                .HasMaxLength(200)
+                .IsUnicode(false);
+            entity.Property(e => e.BloodType)
+                .HasMaxLength(10)
+                .IsUnicode(false);
             entity.Property(e => e.Height).HasColumnType("decimal(5, 2)");
             entity.Property(e => e.Job)
                 .HasMaxLength(100)
                 .IsUnicode(false);
             entity.Property(e => e.Weight).HasColumnType("decimal(5, 2)");
+            entity.Property(e => e.QueueNumber);
 
             entity.HasOne(d => d.MaritalStatus).WithMany(p => p.Applicants)
                 .HasForeignKey(d => d.MaritalStatusID)
@@ -225,9 +239,8 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.ConsultationType)
                 .HasMaxLength(100)
                 .IsUnicode(false);
-            entity.Property(e => e.ReferredDoctor)
-                .HasMaxLength(100)
-                .IsUnicode(false);
+            entity.Property(e => e.ReferralReason)
+                .HasColumnType("text");
             entity.Property(e => e.Result).HasColumnType("text");
 
             entity.HasOne(d => d.Doctor).WithMany(p => p.Consultations)
@@ -352,6 +365,11 @@ public partial class AppDbContext : DbContext
                 .HasMaxLength(50)
                 .IsUnicode(false);
             entity.Property(e => e.Reason).HasColumnType("text");
+            entity.Property(e => e.ReceptionAddedAt).HasColumnType("datetime");
+            entity.Property(e => e.SupervisorAddedAt).HasColumnType("datetime");
+            entity.Property(e => e.SupervisorLastModifiedAt).HasColumnType("datetime");
+            entity.Property(e => e.IsExportedToRecruitment).HasDefaultValue(false);
+            entity.Property(e => e.ExportedAt).HasColumnType("datetime");
 
             entity.HasOne(d => d.EarClinic).WithMany(p => p.FinalDecisions)
                 .HasForeignKey(d => d.EarClinicID)
@@ -397,9 +415,6 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Blood).HasColumnType("text");
             entity.Property(e => e.Digestive).HasColumnType("text");
             entity.Property(e => e.Endocrine).HasColumnType("text");
-            entity.Property(e => e.Hearing)
-                .HasMaxLength(20)
-                .IsUnicode(false);
             entity.Property(e => e.Heart).HasColumnType("text");
             entity.Property(e => e.Joints).HasColumnType("text");
             entity.Property(e => e.Kidney).HasColumnType("text");
@@ -427,6 +442,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Attachment)
                 .HasMaxLength(255)
                 .IsUnicode(false);
+            entity.Property(e => e.InvestigationReason).HasColumnType("text");
             entity.Property(e => e.Result).HasColumnType("text");
             entity.Property(e => e.Status)
                 .HasMaxLength(20)

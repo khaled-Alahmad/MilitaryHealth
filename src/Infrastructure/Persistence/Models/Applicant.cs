@@ -13,6 +13,14 @@ public partial class Applicant
 
     public string FullName { get; set; } = null!;
 
+    public string? MotherName { get; set; }
+
+    public DateTime? DateOfBirth { get; set; }
+
+    public string? RecruitmentCenter { get; set; }
+
+    public string? BloodType { get; set; }
+
     public int? MaritalStatusID { get; set; }
 
     public string? Job { get; set; }
@@ -32,6 +40,8 @@ public partial class Applicant
     public string? DistinctiveMarks { get; set; }
 
     public DateTime? CreatedAt { get; set; }
+
+    public int? QueueNumber { get; set; }
 
     public virtual ICollection<Archive> ArchiveApplicantFileNumberNavigations { get; set; } = new List<Archive>();
 

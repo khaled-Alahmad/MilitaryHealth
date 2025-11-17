@@ -14,7 +14,7 @@ public partial class ConsultationDto
 
     public string? ConsultationType { get; set; }
 
-    public string? ReferredDoctor { get; set; }
+    public string? ReferralReason { get; set; }
 
     public string? Result { get; set; }
 

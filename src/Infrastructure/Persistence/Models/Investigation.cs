@@ -11,6 +11,8 @@ public partial class Investigation
 
     public string? Type { get; set; }
 
+    public string? InvestigationReason { get; set; }
+
     public string? Result { get; set; }
 
     public string? Attachment { get; set; }

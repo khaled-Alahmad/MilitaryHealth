@@ -27,6 +27,16 @@ public partial class FinalDecision
 
     public DateOnly DecisionDate { get; set; }
 
+    public DateTime? ReceptionAddedAt { get; set; }
+
+    public DateTime? SupervisorAddedAt { get; set; }
+
+    public DateTime? SupervisorLastModifiedAt { get; set; }
+
+    public bool IsExportedToRecruitment { get; set; }
+
+    public DateTime? ExportedAt { get; set; }
+
     public virtual EarClinicExam EarClinic { get; set; } = null!;
 
     public virtual EyeExam EyeExam { get; set; } = null!;

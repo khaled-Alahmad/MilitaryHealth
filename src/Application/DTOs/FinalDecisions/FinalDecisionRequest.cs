@@ -27,8 +27,11 @@ public partial class FinalDecisionRequest
 
     public DateOnly DecisionDate { get; set; }
 
+    public DateTime? ReceptionAddedAt { get; set; }
 
+    public DateTime? SupervisorAddedAt { get; set; }
 
+    public DateTime? SupervisorLastModifiedAt { get; set; }
 
 
 }

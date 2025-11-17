@@ -28,6 +28,16 @@ public partial class FinalDecisionDto
 
     public DateOnly DecisionDate { get; set; }
 
+    public DateTime? ReceptionAddedAt { get; set; }
+
+    public DateTime? SupervisorAddedAt { get; set; }
+
+    public DateTime? SupervisorLastModifiedAt { get; set; }
+
+    public bool IsExportedToRecruitment { get; set; }
+
+    public DateTime? ExportedAt { get; set; }
+
     public virtual EyeExamDto EyeExam { get; set; } = null!;
 
     public virtual InternalExamDto InternalExam { get; set; } = null!;

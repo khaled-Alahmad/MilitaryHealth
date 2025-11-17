@@ -28,8 +28,6 @@ public partial class InternalExamDto
 
     public string? Kidney { get; set; }
 
-    public string? Hearing { get; set; }
-
     public string? Skin { get; set; }
 
     public int? ResultID { get; set; }

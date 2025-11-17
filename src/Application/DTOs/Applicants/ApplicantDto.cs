@@ -9,6 +9,14 @@ public class ApplicantDto
     [Required(ErrorMessage = "FullName is required")]
 
     public string FullName { get; set; } = null!;
+
+    public string? MotherName { get; set; }
+
+    public DateTime? DateOfBirth { get; set; }
+
+    public string? RecruitmentCenter { get; set; }
+
+    public string? BloodType { get; set; }
     [Required(ErrorMessage = "Marital Status is required")]
 
     public int? MaritalStatusID { get; set; }
@@ -37,6 +45,8 @@ public class ApplicantDto
 
     public string? DistinctiveMarks { get; set; }
     public DateTime? CreatedAt { get; set; }
+
+    public int? QueueNumber { get; set; }
 
     public MaritalStatusDto? MaritalStatus { get; set; }
 

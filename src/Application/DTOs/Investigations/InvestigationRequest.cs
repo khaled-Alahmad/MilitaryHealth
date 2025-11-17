@@ -10,6 +10,8 @@ public partial class InvestigationRequest
 
     public string? Type { get; set; }
 
+    public string? InvestigationReason { get; set; }
+
     public string? Result { get; set; }
 
     public string? Attachment { get; set; }
