@@ -11,6 +11,7 @@ public class ApplicantService : IApplicantService
     {
         _db = db;
     }
+
     public async Task<ApplicantDetailsDto?> GetApplicantDetailsAsync(string id, CancellationToken ct = default)
     {
         var applicant = await _db.Applicants
@@ -29,11 +30,16 @@ public class ApplicantService : IApplicantService
                 DoctorID = e.DoctorID,
                 Vision = e.Vision,
                 ColorTest = e.ColorTest,
+                WorstRefractionRight = e.WorstRefractionRight,
+                WorstRefractionLeft = e.WorstRefractionLeft,
+                VisionLeft = e.VisionLeft,
+                ColorTestLeft = e.ColorTestLeft,
+
                 Refractions = e.Refractions!.Select(r => new RefractionDto
                 {
                     RefractionID = r.RefractionID,
                     EyeExamID = r.EyeExamID,
-                 IsLeft = r.IsLeft,
+                    IsLeft = r.IsLeft,
                     RefractionTypeID = r.RefractionTypeID,
                     RefractionValue = r.RefractionValue
                 }).ToList(),
@@ -82,65 +88,64 @@ public class ApplicantService : IApplicantService
             .Where(e => e.ApplicantFileNumber == id)
             .Select(e => new EarClinicExamDto
             {
+                
                 EarClinicID = e.EarClinicID,
                 ApplicantFileNumber = e.ApplicantFileNumber,
                 DoctorID = e.DoctorID,
                 RightEar = e.RightEar,
                 LeftEar = e.LeftEar,
                 ResultID = e.ResultID,
+
                 Reason = e.Reason,
                 Doctor = new DoctorDto
                 {
                     DoctorID = e.Doctor!.DoctorID,
                     FullName = e.Doctor.FullName,
-                    SpecializationID= e.Doctor.SpecializationID,
+                    SpecializationID = e.Doctor.SpecializationID,
                     Code = e.Doctor.Code,
                 },
-                isLeftHugeMates= e.isLeftHugeMates,
-                isRightHugeMates= e.isRightHugeMates,
-                LeftHearing= e.LeftHearing,
-                LeftNose= e.LeftNose,
-                LeftString= e.LeftString,
-                LeftTympanicMembrane= e.LeftTympanicMembrane,
-                Mouth= e.Mouth,
-                OtherDiseases= e.OtherDiseases,
-                Resonators= e.Resonators,
-                RightHearing= e.RightHearing,
-                RightNose= e.RightNose,
-                RightString= e.RightString,
-                RightTympanicMembrane= e.RightTympanicMembrane,
-                LeftWhisperTest= e.LeftWhisperTest,
-                RightWhisperTest = e.RightWhisperTest
-                ,
-               Result=new ResultDto
-               {
-                ResultID= e.Result!.ResultID,
-                Description= e.Result.Description,
-               }
-
+                isLeftHugeMates = e.isLeftHugeMates,
+                isRightHugeMates = e.isRightHugeMates,
+                LeftHearing = e.LeftHearing,
+                LeftNose = e.LeftNose,
+                LeftString = e.LeftString,
+                LeftTympanicMembrane = e.LeftTympanicMembrane,
+                Mouth = e.Mouth,
+                OtherDiseases = e.OtherDiseases,
+                
+                Resonators = e.Resonators,
+                RightHearing = e.RightHearing,
+                RightNose = e.RightNose,
+                RightString = e.RightString,
+                RightTympanicMembrane = e.RightTympanicMembrane,
+                LeftWhisperTest = e.LeftWhisperTest,
+                RightWhisperTest = e.RightWhisperTest,
+                Result = new ResultDto
+                {
+                    ResultID = e.Result!.ResultID,
+                    Description = e.Result.Description,
+                }
             })
             .FirstOrDefaultAsync(ct);
         var finalDecision = await _db.FinalDecisions.AsNoTracking()
-            .Where(e=>e.ApplicantFileNumber==id)
-            .Select(e=> new FinalDecisionDto
+            .Where(e => e.ApplicantFileNumber == id)
+            .Select(e => new FinalDecisionDto
             {
-                ApplicantFileNumber=e.ApplicantFileNumber,
-                DecisionID=e.DecisionID,
-                InternalExamID=e.InternalExamID,
-                EyeExamID=e.EyeExamID,
-                OrthopedicExamID=e.OrthopedicExamID,
-                SurgicalExamID=e.SurgicalExamID,
-                ResultID=e.ResultID,
-                Reason=e.Reason,
-                PostponeDuration=e.PostponeDuration,
-                DecisionDate=e.DecisionDate,
-                Result=new Application.DTOs.EyeExams.ResultDto
+                ApplicantFileNumber = e.ApplicantFileNumber,
+                DecisionID = e.DecisionID,
+                InternalExamID = e.InternalExamID,
+                EyeExamID = e.EyeExamID,
+                OrthopedicExamID = e.OrthopedicExamID,
+                SurgicalExamID = e.SurgicalExamID,
+                ResultID = e.ResultID,
+                Reason = e.Reason,
+                PostponeDuration = e.PostponeDuration,
+                DecisionDate = e.DecisionDate,
+                Result = new Application.DTOs.EyeExams.ResultDto
                 {
-                    ResultID=e.Result!.ResultID,
-                    Description=e.Result.Description,
+                    ResultID = e.Result!.ResultID,
+                    Description = e.Result.Description,
                 },
-                
-
             })
             .FirstOrDefaultAsync(ct);
         var surgicalExam = await _db.SurgicalExams.AsNoTracking()
@@ -158,8 +163,8 @@ public class ApplicantService : IApplicantService
                 Reason = e.Reason
             })
             .FirstOrDefaultAsync(ct);
-        var investigation = await _db.Investigations.AsNoTracking().Where(w => w.ApplicantFileNumber == id).Select(
-            e => new InvestigationDto
+        var investigation = await _db.Investigations.AsNoTracking().Where(w => w.ApplicantFileNumber == id).Select(e =>
+            new InvestigationDto
             {
                 ApplicantFileNumber = e.ApplicantFileNumber,
                 Attachment = e.Attachment,
@@ -169,17 +174,14 @@ public class ApplicantService : IApplicantService
                 Result = e.Result,
                 Type = e.Type
             }).FirstOrDefaultAsync(ct);
-        var consultation = await _db.Consultations.AsNoTracking().Where(
-            e=>e.ApplicantFileNumber==id
+        var consultation = await _db.Consultations.AsNoTracking().Where(e => e.ApplicantFileNumber == id
             )
-            
-            .Select(
-            e=>new ConsultationDto
+            .Select(e => new ConsultationDto
             {
-                ApplicantFileNumber=e.ApplicantFileNumber,
-                ConsultationID=e.ConsultationID,
-                Attachment=e.Attachment,
-                ConsultationType= e.ConsultationType,
+                ApplicantFileNumber = e.ApplicantFileNumber,
+                ConsultationID = e.ConsultationID,
+                Attachment = e.Attachment,
+                ConsultationType = e.ConsultationType,
                 DoctorID = e.DoctorID,
                 ReferralReason = e.ReferralReason,
                 Result = e.Result
@@ -187,7 +189,6 @@ public class ApplicantService : IApplicantService
             .FirstOrDefaultAsync(ct);
         return new ApplicantDetailsDto
         {
-            
             ApplicantID = applicant.ApplicantID,
             FileNumber = applicant.FileNumber,
             FullName = applicant.FullName,
@@ -201,16 +202,15 @@ public class ApplicantService : IApplicantService
             Tattoo = applicant.Tattoo,
             DistinctiveMarks = applicant.DistinctiveMarks,
             CreatedAt = applicant.CreatedAt,
-            Investigation= investigation,
-            Consultation= consultation,
+            Investigation = investigation,
+            Consultation = consultation,
             EyeExam = eyeExam,
             InternalExam = internalExam,
             OrthopedicExamDto = orthopedicExam,
             SurgicalExam = surgicalExam,
             finalDecision = finalDecision,
-            AssociateNumber= applicant.AssociateNumber,
-            EarClinic=earClinicExam
-            
+            AssociateNumber = applicant.AssociateNumber,
+            EarClinic = earClinicExam
         };
     }
 
@@ -222,20 +222,17 @@ public class ApplicantService : IApplicantService
 
         if (applicant == null)
             return null;
-        var maritalStatus = await _db.MaritalStatuses.AsNoTracking().Where(
-            e => e.MaritalStatusID == applicant.MaritalStatusID).
-            Select(w=>new MaritalStatusDto
+        var maritalStatus = await _db.MaritalStatuses.AsNoTracking()
+            .Where(e => e.MaritalStatusID == applicant.MaritalStatusID).Select(w => new MaritalStatusDto
             {
                 MaritalStatusID = w.MaritalStatusID,
-                Description= w.Description,
+                Description = w.Description,
             })
-            .
-            FirstOrDefaultAsync(ct);
+            .FirstOrDefaultAsync(ct);
 
-       
+
         return new ApplicantDetailsDto
         {
-
             ApplicantID = applicant.ApplicantID,
             FileNumber = applicant.FileNumber,
             FullName = applicant.FullName,
@@ -249,8 +246,7 @@ public class ApplicantService : IApplicantService
             Tattoo = applicant.Tattoo,
             DistinctiveMarks = applicant.DistinctiveMarks,
             CreatedAt = applicant.CreatedAt,
-            MaritalStatus= maritalStatus,
-     
+            MaritalStatus = maritalStatus,
         };
     }
 
@@ -259,7 +255,7 @@ public class ApplicantService : IApplicantService
         var total = await _db.FinalDecisions.CountAsync(ct);
         var accepted = await _db.FinalDecisions.CountAsync(a => a.ResultID == 1, ct);
         var rejected = await _db.FinalDecisions.CountAsync(a => a.ResultID == 3, ct);
-        var pending = await _db.FinalDecisions.CountAsync(a => a.ResultID ==2, ct);
+        var pending = await _db.FinalDecisions.CountAsync(a => a.ResultID == 2, ct);
 
         return new ApplicantsStatisticsDto
         {
