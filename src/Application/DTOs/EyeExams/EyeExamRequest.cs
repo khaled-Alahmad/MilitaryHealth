@@ -13,10 +13,16 @@ public partial class EyeExamRequest
     public int? DoctorID { get; set; }
 
     public string? Vision { get; set; }
+    
     public string? VisionLeft { get; set; }
 
-    public string? ColorTestLeft { get; set; }
     public string? ColorTest { get; set; }
+
+    public string? ColorTestLeft { get; set; }
+
+    public string? WorstRefractionRight { get; set; }
+
+    public string? WorstRefractionLeft { get; set; }
 
     //public int? RefractionTypeID { get; set; }
 

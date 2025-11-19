@@ -23,19 +23,14 @@ public class ApplicantRequest
     [Required(ErrorMessage = "Username is required")]
 
     public string? Job { get; set; }
-    [Required(ErrorMessage = "Height is required")]
 
     public decimal? Height { get; set; }
-    [Required(ErrorMessage = "Weight is required")]
 
     public decimal? Weight { get; set; }
-    [Required(ErrorMessage = "BMI is required")]
 
     public decimal? BMI { get; set; }
-    [Required(ErrorMessage = "Blood Pressure is required")]
 
     public string? BloodPressure { get; set; }
-    [Required(ErrorMessage = "Pulse is required")]
 
     public int? Pulse { get; set; }
     [Required(ErrorMessage = "Tattoo is required")]

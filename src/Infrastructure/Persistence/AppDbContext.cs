@@ -331,14 +331,20 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.ColorTestLeft)
                 .HasMaxLength(10)
                 .IsFixedLength();
-            entity.Property(e => e.OtherDiseases).HasColumnType("text");
-            entity.Property(e => e.Reason).HasColumnType("text");
             entity.Property(e => e.Vision)
                 .HasMaxLength(50)
                 .IsUnicode(false);
             entity.Property(e => e.VisionLeft)
                 .HasMaxLength(10)
                 .IsFixedLength();
+            entity.Property(e => e.WorstRefractionRight)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.WorstRefractionLeft)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.OtherDiseases).HasColumnType("text");
+            entity.Property(e => e.Reason).HasColumnType("text");
 
             entity.HasOne(d => d.Doctor).WithMany(p => p.EyeExams)
                 .HasForeignKey(d => d.DoctorID)

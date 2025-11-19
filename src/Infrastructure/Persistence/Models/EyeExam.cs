@@ -19,6 +19,10 @@ public partial class EyeExam
 
     public string? ColorTest { get; set; }
 
+    public string? WorstRefractionRight { get; set; }
+
+    public string? WorstRefractionLeft { get; set; }
+
     public string? OtherDiseases { get; set; }
 
     public int? ResultID { get; set; }
