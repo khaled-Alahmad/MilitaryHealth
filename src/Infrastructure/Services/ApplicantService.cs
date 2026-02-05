@@ -21,6 +21,17 @@ public class ApplicantService : IApplicantService
         if (applicant == null)
             return null;
 
+        // Load marital status (same behaviour as list endpoint)
+        var maritalStatus = await _db.MaritalStatuses
+            .AsNoTracking()
+            .Where(e => e.MaritalStatusID == applicant.MaritalStatusID)
+            .Select(w => new MaritalStatusDto
+            {
+                MaritalStatusID = w.MaritalStatusID,
+                Description = w.Description,
+            })
+            .FirstOrDefaultAsync(ct);
+
         var eyeExam = await _db.EyeExams.AsNoTracking()
             .Where(e => e.ApplicantFileNumber == id)
             .Select(e => new EyeExamDto
@@ -141,6 +152,11 @@ public class ApplicantService : IApplicantService
                 Reason = e.Reason,
                 PostponeDuration = e.PostponeDuration,
                 DecisionDate = e.DecisionDate,
+                ReceptionAddedAt = e.ReceptionAddedAt,
+                SupervisorAddedAt = e.SupervisorAddedAt,
+                SupervisorLastModifiedAt = e.SupervisorLastModifiedAt,
+                IsExportedToRecruitment = e.IsExportedToRecruitment,
+                ExportedAt = e.ExportedAt,
                 Result = new Application.DTOs.EyeExams.ResultDto
                 {
                     ResultID = e.Result!.ResultID,
@@ -192,6 +208,11 @@ public class ApplicantService : IApplicantService
             ApplicantID = applicant.ApplicantID,
             FileNumber = applicant.FileNumber,
             FullName = applicant.FullName,
+            AssociateNumber = applicant.AssociateNumber,
+            MotherName = applicant.MotherName,
+            DateOfBirth = applicant.DateOfBirth,
+            RecruitmentCenter = applicant.RecruitmentCenter,
+            BloodType = applicant.BloodType,
             MaritalStatusID = applicant.MaritalStatusID,
             Job = applicant.Job,
             Height = applicant.Height,
@@ -202,6 +223,8 @@ public class ApplicantService : IApplicantService
             Tattoo = applicant.Tattoo,
             DistinctiveMarks = applicant.DistinctiveMarks,
             CreatedAt = applicant.CreatedAt,
+            QueueNumber = applicant.QueueNumber,
+            MaritalStatus = maritalStatus,
             Investigation = investigation,
             Consultation = consultation,
             EyeExam = eyeExam,
@@ -209,7 +232,6 @@ public class ApplicantService : IApplicantService
             OrthopedicExamDto = orthopedicExam,
             SurgicalExam = surgicalExam,
             finalDecision = finalDecision,
-            AssociateNumber = applicant.AssociateNumber,
             EarClinic = earClinicExam
         };
     }

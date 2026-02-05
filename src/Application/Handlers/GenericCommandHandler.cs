@@ -84,8 +84,44 @@ public class GenericCommandHandler<TEntity, TDto> :
 
     public async Task<TDto> Handle(UpdateEntityCommand<TEntity, TDto> request, CancellationToken ct)
     {
-        var entity = await _repo.GetByIdAsync(request.Id, ct)
-            ?? throw new KeyNotFoundException($"{typeof(TEntity).Name} not found.");
+        TEntity? entity;
+
+        // Special handling for FinalDecision composite key using reflection (بدون مرجع مباشر للـ entity أو الـ DTO)
+        if (typeof(TEntity).Name == "FinalDecision")
+        {
+            var dtoType = typeof(TDto);
+
+            object GetKey(string propName)
+            {
+                var prop = dtoType.GetProperty(propName);
+                if (prop == null)
+                    throw new ArgumentException($"Property '{propName}' not found on DTO type '{dtoType.Name}'.");
+
+                var value = prop.GetValue(request.Dto);
+                if (value == null)
+                    throw new ArgumentException($"Property '{propName}' on DTO '{dtoType.Name}' cannot be null when updating FinalDecision.");
+
+                return value;
+            }
+
+            var keys = new object[]
+            {
+                request.Id,                  // DecisionID from route
+                GetKey("OrthopedicExamID"),
+                GetKey("SurgicalExamID"),
+                GetKey("InternalExamID"),
+                GetKey("EyeExamID"),
+                GetKey("EarClinicID")
+            };
+
+            entity = await _repo.GetByIdAsync(keys, ct)
+                     ?? throw new KeyNotFoundException($"{typeof(TEntity).Name} not found.");
+        }
+        else
+        {
+            entity = await _repo.GetByIdAsync(request.Id, ct)
+                     ?? throw new KeyNotFoundException($"{typeof(TEntity).Name} not found.");
+        }
 
         var dto = request.Dto;
 

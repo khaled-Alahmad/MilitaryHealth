@@ -1,4 +1,4 @@
-﻿using Application.Abstractions;
+using Application.Abstractions;
 using Application.DTOs.Users;
 using Infrastructure.Identity;
 using Infrastructure.Persistence;
@@ -25,6 +25,13 @@ builder.Host.UseSerilog((ctx, lc) => lc.ReadFrom.Configuration(ctx.Configuration
 
 // Mapster Config & Mapper
 var config = TypeAdapterConfig.GlobalSettings;
+// Ensure FinalDecision mapping includes all properties
+config.NewConfig<Infrastructure.Persistence.Models.FinalDecision, Application.DTOs.FinalDecisionDto>()
+    .Map(dest => dest.ReceptionAddedAt, src => src.ReceptionAddedAt)
+    .Map(dest => dest.SupervisorAddedAt, src => src.SupervisorAddedAt)
+    .Map(dest => dest.SupervisorLastModifiedAt, src => src.SupervisorLastModifiedAt)
+    .Map(dest => dest.IsExportedToRecruitment, src => src.IsExportedToRecruitment)
+    .Map(dest => dest.ExportedAt, src => src.ExportedAt);
 builder.Services.AddSingleton(config);
 builder.Services.AddScoped<IMapper, ServiceMapper>();
 
@@ -57,7 +64,15 @@ builder.Services.AddDbContext<AppIdentityDbContext>(options =>
         }));
 
 // Identity
-builder.Services.AddIdentity<ApplicationUser, IdentityRole<int>>()
+builder.Services.AddIdentity<ApplicationUser, IdentityRole<int>>(options =>
+{
+    // تخفيف متطلبات كلمة المرور للتطوير
+    options.Password.RequireDigit = false;
+    options.Password.RequireLowercase = false;
+    options.Password.RequireUppercase = false;
+    options.Password.RequireNonAlphanumeric = false;
+    options.Password.RequiredLength = 4;
+})
     .AddEntityFrameworkStores<AppIdentityDbContext>()
     .AddDefaultTokenProviders();
 
@@ -249,8 +264,9 @@ builder.Services.AddScoped<IRecruitmentExportService, RecruitmentExportService>(
 builder.Services.AddControllers()
     .AddJsonOptions(o =>
     {
+        // Don't ignore null values - show all fields
         o.JsonSerializerOptions.DefaultIgnoreCondition =
-            System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
+            System.Text.Json.Serialization.JsonIgnoreCondition.Never;
     })
     .ConfigureApiBehaviorOptions(options =>
     {
@@ -260,7 +276,12 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<int>>>();
+    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    
     await SeedRoles(roleManager);
+    await SeedDoctors(dbContext);
+    await SeedUsers(userManager);
 }
 
 // Middleware & Logging
@@ -314,11 +335,89 @@ app.MapControllers();
 app.Run();
 static async Task SeedRoles(RoleManager<IdentityRole<int>> roleManager)
 {
-    var roles = new[] { "Admin", "Supervisor", "Doctor", "Receptionist" , "Diwan" };
+    var roles = new[] { "Admin", "Supervisor", "Doctor", "Receptionist", "Diwan" };
 
     foreach (var role in roles)
     {
         if (!await roleManager.RoleExistsAsync(role))
             await roleManager.CreateAsync(new IdentityRole<int> { Name = role });
+    }
+}
+
+static async Task SeedDoctors(AppDbContext dbContext)
+{
+    // Check if doctors already exist
+    if (await dbContext.Doctors.AnyAsync())
+        return;
+
+    var doctors = new[]
+    {
+        new Doctor { DoctorID = 1, FullName = "د. أحمد خليل", SpecializationID = 1, ContractTypeID = 2, Code = "DOC001" },
+        new Doctor { DoctorID = 2, FullName = "د. سامر محمود", SpecializationID = 2, ContractTypeID = 2, Code = "DOC002" },
+        new Doctor { DoctorID = 3, FullName = "د. رامي حسن", SpecializationID = 3, ContractTypeID = 2, Code = "DOC003" },
+        new Doctor { DoctorID = 4, FullName = "د. يوسف علي", SpecializationID = 4, ContractTypeID = 2, Code = "DOC004" },
+        new Doctor { DoctorID = 5, FullName = "د. أحمد محمد", SpecializationID = 5, ContractTypeID = 2, Code = "DOC005" }
+    };
+
+    var strategy = dbContext.Database.CreateExecutionStrategy();
+    await strategy.ExecuteAsync(doctors, async doctorsArray =>
+    {
+        await using var transaction = await dbContext.Database.BeginTransactionAsync();
+        try
+        {
+            await dbContext.Database.ExecuteSqlRawAsync("SET IDENTITY_INSERT Doctors ON");
+            foreach (var doctor in doctorsArray)
+                dbContext.Doctors.Add(doctor);
+            await dbContext.SaveChangesAsync();
+            await dbContext.Database.ExecuteSqlRawAsync("SET IDENTITY_INSERT Doctors OFF");
+            await transaction.CommitAsync();
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
+    });
+}
+
+static async Task SeedUsers(UserManager<ApplicationUser> userManager)
+{
+    // Check if users already exist
+    if (await userManager.Users.AnyAsync())
+        return;
+
+    var usersData = new[]
+    {
+        new { FullName = "موظف الاستقبال", UserName = "reception", Password = "1234", Role = "Receptionist", DoctorID = (int?)null },
+        new { FullName = "مدير النظام", UserName = "admin", Password = "1234", Role = "Admin", DoctorID = (int?)null },
+        new { FullName = "د. أحمد خليل", UserName = "eye_doc", Password = "1234", Role = "Doctor", DoctorID = (int?)1 },
+        new { FullName = "د. سامر محمود", UserName = "internal_doc", Password = "1234", Role = "Doctor", DoctorID = (int?)2 },
+        new { FullName = "د. رامي حسن", UserName = "surgery_doc", Password = "1234", Role = "Doctor", DoctorID = (int?)3 },
+        new { FullName = "د. يوسف علي", UserName = "ortho_doc", Password = "1234", Role = "Doctor", DoctorID = (int?)4 },
+        new { FullName = "الديوان", UserName = "diwan", Password = "1234", Role = "Diwan", DoctorID = (int?)null },
+        new { FullName = "مشرف النظام", UserName = "supervisor", Password = "1234", Role = "Supervisor", DoctorID = (int?)null },
+        new { FullName = "د. أحمد محمد", UserName = "ear_clinic", Password = "1234", Role = "Doctor", DoctorID = (int?)5 }
+    };
+
+    foreach (var userData in usersData)
+    {
+        var user = new ApplicationUser
+        {
+            FullName = userData.FullName,
+            UserName = userData.UserName,
+            Status = "Active"
+        };
+
+        if (userData.DoctorID.HasValue)
+        {
+            user.DoctorID = userData.DoctorID;
+        }
+
+        var result = await userManager.CreateAsync(user, userData.Password);
+        
+        if (result.Succeeded)
+        {
+            await userManager.AddToRoleAsync(user, userData.Role);
+        }
     }
 }

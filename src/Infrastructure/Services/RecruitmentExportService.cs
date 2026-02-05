@@ -27,30 +27,33 @@ public class RecruitmentExportService : IRecruitmentExportService
 
     public async Task<List<RecruitmentExportDto>> GetPendingExportsAsync()
     {
-        var pendingExports = await _context.FinalDecisions
+        // First, get the data from database
+        var pendingData = await _context.FinalDecisions
             .Include(fd => fd.Result)
             .Where(fd => !fd.IsExportedToRecruitment)
-            .Join(_context.Applicants,
+            .Join(_context.Applicants.Include(a => a.MaritalStatus),
                 fd => fd.ApplicantFileNumber,
                 app => app.FileNumber,
                 (fd, app) => new { FinalDecision = fd, Applicant = app })
             .OrderBy(x => x.Applicant.CreatedAt)
-            .Select((x, index) => new RecruitmentExportDto
-            {
-                SequenceNumber = index + 1,
-                FileNumber = x.Applicant.FileNumber,
-                FullName = x.Applicant.FullName,
-                MotherName = x.Applicant.MotherName,
-                MaritalStatus = x.Applicant.MaritalStatus != null ? x.Applicant.MaritalStatus.Description : null,
-                DateOfBirth = x.Applicant.DateOfBirth,
-                BloodType = x.Applicant.BloodType,
-                RecruitmentCenter = x.Applicant.RecruitmentCenter,
-                Result = x.FinalDecision.Result != null ? x.FinalDecision.Result.Description : null,
-                SupervisorEvaluationDate = x.FinalDecision.SupervisorLastModifiedAt ?? x.FinalDecision.SupervisorAddedAt,
-                Recommendations = null, // يمكن إضافة حقل التوصيات إذا كان موجود
-                Reason = x.FinalDecision.Reason
-            })
             .ToListAsync();
+
+        // Then, apply sequence numbering in memory
+        var pendingExports = pendingData.Select((x, index) => new RecruitmentExportDto
+        {
+            SequenceNumber = index + 1,
+            FileNumber = x.Applicant.FileNumber,
+            FullName = x.Applicant.FullName,
+            MotherName = x.Applicant.MotherName,
+            MaritalStatus = x.Applicant.MaritalStatus?.Description,
+            DateOfBirth = x.Applicant.DateOfBirth,
+            BloodType = x.Applicant.BloodType,
+            RecruitmentCenter = x.Applicant.RecruitmentCenter,
+            Result = x.FinalDecision.Result?.Description,
+            SupervisorEvaluationDate = x.FinalDecision.SupervisorLastModifiedAt ?? x.FinalDecision.SupervisorAddedAt,
+            Recommendations = null, // يمكن إضافة حقل التوصيات إذا كان موجود
+            Reason = x.FinalDecision.Reason
+        }).ToList();
 
         return pendingExports;
     }
