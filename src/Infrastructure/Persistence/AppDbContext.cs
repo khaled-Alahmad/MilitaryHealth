@@ -472,6 +472,11 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Description)
                 .HasMaxLength(50)
                 .IsUnicode(false);
+            
+            entity.HasData(
+                new MaritalStatus { MaritalStatusID = 1, Description = "متزوج" },
+                new MaritalStatus { MaritalStatusID = 2, Description = "أعزب" }
+            );
         });
 
         modelBuilder.Entity<OrthopedicExam>(entity =>
