@@ -13,21 +13,16 @@ public class RecruitmentExportDto
 
     /// <summary>رقم الاستمارة</summary>
     public string FileNumber { get; set; } = null!;
+    /// AssociateNumber
+    public string? AssociateNumber { get; set; }
 
-    /// <summary>الاسم الثلاثي</summary>
-    public string FullName { get; set; } = null!;
 
-    /// <summary>اسم الأم</summary>
-    public string? MotherName { get; set; }
 
-    /// <summary>الحالة الاجتماعية</summary>
-    public string? MaritalStatus { get; set; }
 
-    /// <summary>تاريخ المواليد</summary>
-    public DateTime? DateOfBirth { get; set; }
 
-    /// <summary>زمرة الدم / فصيلة الدم</summary>
-    public string? BloodType { get; set; }
+  
+
+
 
     /// <summary>اسم مركز التجنيد</summary>
     public string? RecruitmentCenter { get; set; }
@@ -38,9 +33,7 @@ public class RecruitmentExportDto
     /// <summary>تاريخ تقييم المشرف</summary>
     public DateTime? SupervisorEvaluationDate { get; set; }
 
-    /// <summary>التوصيات</summary>
-    public string? Recommendations { get; set; }
-
+  
     /// <summary>السبب</summary>
     public string? Reason { get; set; }
 }

@@ -35,7 +35,7 @@ public class FileUploadController : ControllerBase
 
         try
         {
-            var uploadRoot = Path.Combine(_env.WebRootPath, "Files");
+            var uploadRoot = Path.Combine(_env.ContentRootPath, "Files");
             if (!Directory.Exists(uploadRoot))
             {
                 Directory.CreateDirectory(uploadRoot);

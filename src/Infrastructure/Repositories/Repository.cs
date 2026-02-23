@@ -294,6 +294,7 @@ public class Repository<TEntity> : IPagedRepository<TEntity> where TEntity : cla
                 fieldName = key[4..^1];
                 mode = "max";
             }
+
             else if (key.StartsWith("From["))
             {
                 fieldName = key[5..^1];
@@ -490,4 +491,21 @@ public class Repository<TEntity> : IPagedRepository<TEntity> where TEntity : cla
             .AsNoTracking()
             .FirstOrDefaultAsync(e => EF.Property<string>(e, "ApplicantFileNumber") == fileNumber, ct);
     }
+
+    public async Task<int> GetNextQueueNumberAsync(DateTime date, CancellationToken ct = default)
+    {
+        // compute start and end of the day in UTC
+        var dayStart = date.Date;
+        var dayEnd = dayStart.AddDays(1);
+
+        // Assuming Applicant.CreatedAt stores UTC
+        var max = await _set
+            .Where(e => EF.Property<DateTime?>(e, "CreatedAt") >= dayStart && EF.Property<DateTime?>(e, "CreatedAt") < dayEnd)
+            .Select(e => EF.Property<int?>(e, "QueueNumber"))
+            .MaxAsync(ct);
+
+        var next = (max ?? 0) + 1;
+        return next;
+    }
+
 }

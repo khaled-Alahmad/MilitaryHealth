@@ -43,15 +43,11 @@ public class RecruitmentExportService : IRecruitmentExportService
         {
             SequenceNumber = index + 1,
             FileNumber = x.Applicant.FileNumber,
-            FullName = x.Applicant.FullName,
-            MotherName = x.Applicant.MotherName,
-            MaritalStatus = x.Applicant.MaritalStatus?.Description,
-            DateOfBirth = x.Applicant.DateOfBirth,
-            BloodType = x.Applicant.BloodType,
+            AssociateNumber = x.Applicant.AssociateNumber,
             RecruitmentCenter = x.Applicant.RecruitmentCenter,
+           
             Result = x.FinalDecision.Result?.Description,
             SupervisorEvaluationDate = x.FinalDecision.SupervisorLastModifiedAt ?? x.FinalDecision.SupervisorAddedAt,
-            Recommendations = null, // يمكن إضافة حقل التوصيات إذا كان موجود
             Reason = x.FinalDecision.Reason
         }).ToList();
 
@@ -119,15 +115,10 @@ public class RecruitmentExportService : IRecruitmentExportService
                     {
                         SequenceNumber = sequenceNumber++,
                         FileNumber = applicant.FileNumber,
-                        FullName = applicant.FullName,
-                        MotherName = applicant.MotherName,
-                        MaritalStatus = applicant.MaritalStatus?.Description,
-                        DateOfBirth = applicant.DateOfBirth,
-                        BloodType = applicant.BloodType,
                         RecruitmentCenter = applicant.RecruitmentCenter,
                         Result = decision.Result?.Description,
+                        AssociateNumber = applicant.AssociateNumber,
                         SupervisorEvaluationDate = decision.SupervisorLastModifiedAt ?? decision.SupervisorAddedAt,
-                        Recommendations = null, // يمكن إضافته
                         Reason = decision.Reason
                     });
                 }
@@ -210,11 +201,10 @@ public class RecruitmentExportService : IRecruitmentExportService
             column.Item().AlignCenter().Text("الجمهورية العربية السورية")
                 .FontSize(14).Bold().FontFamily("Arial");
             
-            column.Item().AlignCenter().Text("وزارة الدفاع - مديرية الصحة العسكرية")
+            column.Item().AlignCenter().Text("وزارة الدفاع - ادارة الخدمات الطبية")
                 .FontSize(12).SemiBold().FontFamily("Arial");
             
-            column.Item().AlignCenter().Text("قائمة المنتسبين المصدّرة لمركز التجنيد")
-                .FontSize(16).Bold().FontFamily("Arial");
+         
             
             column.Item().PaddingVertical(5).LineHorizontal(1);
         });
@@ -229,11 +219,7 @@ public class RecruitmentExportService : IRecruitmentExportService
             {
                 columns.ConstantColumn(30);  // التعداد
                 columns.ConstantColumn(80);  // رقم الاستمارة
-                columns.RelativeColumn(2);   // الاسم الثلاثي
-                columns.RelativeColumn(1.5f); // اسم الأم
-                columns.ConstantColumn(60);  // الحالة الاجتماعية
-                columns.ConstantColumn(70);  // المواليد
-                columns.ConstantColumn(40);  // الزمرة
+                columns.RelativeColumn(2);   // رقم التجنيد
                 columns.RelativeColumn(1);   // المركز
                 columns.ConstantColumn(60);  // النتيجة
                 columns.ConstantColumn(70);  // تاريخ التقييم
@@ -245,12 +231,8 @@ public class RecruitmentExportService : IRecruitmentExportService
             {
                 header.Cell().Element(CellStyle).AlignCenter().Text("التعداد").Bold();
                 header.Cell().Element(CellStyle).AlignCenter().Text("رقم الاستمارة").Bold();
-                header.Cell().Element(CellStyle).AlignCenter().Text("الاسم الثلاثي").Bold();
-                header.Cell().Element(CellStyle).AlignCenter().Text("اسم الأم").Bold();
-                header.Cell().Element(CellStyle).AlignCenter().Text("الحالة الاجتماعية").Bold();
-                header.Cell().Element(CellStyle).AlignCenter().Text("المواليد").Bold();
-                header.Cell().Element(CellStyle).AlignCenter().Text("الزمرة").Bold();
-                header.Cell().Element(CellStyle).AlignCenter().Text("المركز").Bold();
+                header.Cell().Element(CellStyle).AlignCenter().Text("رقم التجنيد").Bold();
+                header.Cell().Element(CellStyle).AlignCenter().Text("مركز التجنيد").Bold();
                 header.Cell().Element(CellStyle).AlignCenter().Text("النتيجة").Bold();
                 header.Cell().Element(CellStyle).AlignCenter().Text("تاريخ التقييم").Bold();
                 header.Cell().Element(CellStyle).AlignCenter().Text("السبب").Bold();
@@ -271,12 +253,7 @@ public class RecruitmentExportService : IRecruitmentExportService
             {
                 table.Cell().Element(CellStyle).AlignCenter().Text(item.SequenceNumber.ToString());
                 table.Cell().Element(CellStyle).AlignRight().Text(item.FileNumber ?? "-");
-                table.Cell().Element(CellStyle).AlignRight().Text(item.FullName ?? "-");
-                table.Cell().Element(CellStyle).AlignRight().Text(item.MotherName ?? "-");
-                table.Cell().Element(CellStyle).AlignCenter().Text(item.MaritalStatus ?? "-");
-                table.Cell().Element(CellStyle).AlignCenter()
-                    .Text(item.DateOfBirth?.ToString("yyyy/MM/dd") ?? "-");
-                table.Cell().Element(CellStyle).AlignCenter().Text(item.BloodType ?? "-");
+                table.Cell().Element(CellStyle).AlignRight().Text(item.AssociateNumber ?? "-");
                 table.Cell().Element(CellStyle).AlignRight().Text(item.RecruitmentCenter ?? "-");
                 table.Cell().Element(CellStyle).AlignCenter().Text(item.Result ?? "-");
                 table.Cell().Element(CellStyle).AlignCenter()

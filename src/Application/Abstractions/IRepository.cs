@@ -1,5 +1,7 @@
-﻿using Application.DTOs;
+﻿using System;
 using System.Linq.Expressions;
+using System.Threading;
+using Application.DTOs;
 
 public interface IRepository<TEntity> where TEntity : class
 {

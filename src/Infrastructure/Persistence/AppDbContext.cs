@@ -472,11 +472,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Description)
                 .HasMaxLength(50)
                 .IsUnicode(false);
-            
-            entity.HasData(
-                new MaritalStatus { MaritalStatusID = 1, Description = "متزوج" },
-                new MaritalStatus { MaritalStatusID = 2, Description = "أعزب" }
-            );
+         
         });
 
         modelBuilder.Entity<OrthopedicExam>(entity =>
@@ -677,6 +673,39 @@ public partial class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_UserRefreshTokens_Users");
         });
+
+        modelBuilder.Entity<Result>().HasData(
+            new Result { ResultID = 1, Description = "مقبول" },
+            new Result { ResultID = 2, Description = "مرفوض" },
+            new Result { ResultID = 3, Description = "مؤجل" }
+        );
+
+        modelBuilder.Entity<Specialization>().HasData(
+            new Specialization { SpecializationID = 1, Description = "عيون" },
+            new Specialization { SpecializationID = 2, Description = "باطنة" },
+            new Specialization { SpecializationID = 3, Description = "جراحة" },
+            new Specialization { SpecializationID = 4, Description = "عظمية" },
+            new Specialization { SpecializationID = 5, Description = "اذنية" }
+        );
+
+        modelBuilder.Entity<RefractionType>().HasData(
+            new RefractionType { RefractionTypeID = 1, Description = "حسر نظر" },
+            new RefractionType { RefractionTypeID = 2, Description = "مد نظر" },
+            new RefractionType { RefractionTypeID = 3, Description = "استجماتيزم" },
+            new RefractionType { RefractionTypeID = 4, Description = "سليم" }
+        );
+
+        modelBuilder.Entity<MaritalStatus>().HasData(
+            new MaritalStatus { MaritalStatusID = 1, Description = "أعزب" },
+            new MaritalStatus { MaritalStatusID = 2, Description = "متزوج" },
+            new MaritalStatus { MaritalStatusID = 3, Description = "مطلق" }
+        );
+
+        modelBuilder.Entity<ContractType>().HasData(
+            new ContractType { ContractTypeID = 1, Description = "مدني" },
+            new ContractType { ContractTypeID = 2, Description = "عسكري" },
+            new ContractType { ContractTypeID = 3, Description = "متعاقد" }
+        );
 
         OnModelCreatingPartial(modelBuilder);
     }

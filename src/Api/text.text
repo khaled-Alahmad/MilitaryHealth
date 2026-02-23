@@ -1,1 +1,0 @@
-dotnet "P:\MilitaryHealth\src\Api\bin\Debug\net9.0\Api.dll" --contentRoot "P:\MilitaryHealth\src\Api"

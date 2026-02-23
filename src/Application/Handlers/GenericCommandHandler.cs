@@ -2,6 +2,8 @@
 using MediatR;
 using Application.Abstractions;
 using Application.DTOs;
+using Microsoft.AspNetCore.Http;
+using System;
 
 public class GenericCommandHandler<TEntity, TDto> :
     IRequestHandler<CreateEntityCommand<TEntity, TDto>, TDto>,
@@ -14,23 +16,31 @@ public class GenericCommandHandler<TEntity, TDto> :
 
     private readonly IMapper _mapper;
     private readonly IFileNumberGenerator<TEntity>? _fileNumberGenerator;
+    private readonly IHttpContextAccessor? _httpContextAccessor;
 
     public GenericCommandHandler(
         IRepository<TEntity> repo,
         IArchiveService repoArch,
         IMapper mapper,
-        IFileNumberGenerator<TEntity>? fileNumberGenerator = null)
+        IFileNumberGenerator<TEntity>? fileNumberGenerator = null,
+        IHttpContextAccessor? httpContextAccessor = null)
     {
         _repo = repo;
         _mapper = mapper;
         _repoArch = repoArch;
         _fileNumberGenerator = fileNumberGenerator;
+        _httpContextAccessor = httpContextAccessor;
     }
 
     public async Task<TDto> Handle(CreateEntityCommand<TEntity, TDto> request, CancellationToken ct)
     {
         var entity = _mapper.Map<TEntity>(request.Dto)
             ?? throw new InvalidOperationException("Mapping produced null entity.");
+
+        if (IsFinalDecisionEntity)
+        {
+            ApplyFinalDecisionCreateTimestamps(entity);
+        }
 
         if (typeof(TEntity).Name.Contains("Applicant") && _fileNumberGenerator != null)
         {
@@ -45,7 +55,29 @@ public class GenericCommandHandler<TEntity, TDto> :
             if (createdAtProp != null && createdAtProp.CanWrite &&
                 (createdAtProp.PropertyType == typeof(DateTime) || createdAtProp.PropertyType == typeof(DateTime?)))
             {
-                createdAtProp.SetValue(entity, DateTime.UtcNow);
+                var now = DateTime.UtcNow;
+                createdAtProp.SetValue(entity, now);
+
+                // set daily queue number starting from 1 each day
+                var queueProp = typeof(TEntity).GetProperty("QueueNumber");
+                if (queueProp != null && queueProp.CanWrite &&
+                    (queueProp.PropertyType == typeof(int) || queueProp.PropertyType == typeof(int?)))
+                {
+                    try
+                    {
+                        var getNextQueueNumberMethod = _repo.GetType().GetMethod("GetNextQueueNumberAsync");
+                        if (getNextQueueNumberMethod != null)
+                        {
+                            var task = (Task<int>)getNextQueueNumberMethod.Invoke(_repo, new object[] { now, ct });
+                            var nextQueue = await task;
+                            queueProp.SetValue(entity, nextQueue);
+                        }
+                    }
+                    catch
+                    {
+                        // ignore any errors computing queue number and leave null
+                    }
+                }
             }
         }
 
@@ -125,6 +157,8 @@ public class GenericCommandHandler<TEntity, TDto> :
 
         var dto = request.Dto;
 
+        ApplyFinalDecisionUpdateTimestamps(entity, dto);
+
         // update only if value sent
         foreach (var prop in typeof(TDto).GetProperties())
         {
@@ -149,5 +183,112 @@ public class GenericCommandHandler<TEntity, TDto> :
 
         await _repo.DeleteAsync(entity, ct);
         return true;
+    }
+
+    private bool UserIsInRole(string role)
+        => !string.IsNullOrWhiteSpace(role) && _httpContextAccessor?.HttpContext?.User?.IsInRole(role) == true;
+
+    private bool IsFinalDecisionEntity
+        => typeof(TEntity).Name.Contains("FinalDecision", StringComparison.OrdinalIgnoreCase);
+
+    private bool CurrentUserIsReceptionist => UserIsInRole("Receptionist");
+    private bool CurrentUserIsSupervisor => UserIsInRole("Supervisor");
+
+    private void ApplyFinalDecisionCreateTimestamps(TEntity entity)
+    {
+        if (!IsFinalDecisionEntity)
+            return;
+
+        if (CurrentUserIsReceptionist)
+        {
+            SetDateTimeValue(entity, "ReceptionAddedAt", DateTime.UtcNow);
+        }
+
+        if (CurrentUserIsSupervisor)
+        {
+            var now = DateTime.UtcNow;
+            SetDateTimeValue(entity, "SupervisorAddedAt", now);
+            SetDateTimeValue(entity, "SupervisorLastModifiedAt", now, force: true);
+        }
+    }
+
+    private void ApplyFinalDecisionUpdateTimestamps(TEntity entity, TDto dto)
+    {
+        if (!IsFinalDecisionEntity || dto == null)
+            return;
+
+        if (CurrentUserIsReceptionist &&
+            !HasDateTimeValue(entity, "ReceptionAddedAt") &&
+            !HasDateTimeValue(dto, "ReceptionAddedAt"))
+        {
+            SetDateTimeValue(dto, "ReceptionAddedAt", DateTime.UtcNow, force: true);
+        }
+
+        if (CurrentUserIsSupervisor)
+        {
+            var now = DateTime.UtcNow;
+            if (!HasDateTimeValue(entity, "SupervisorAddedAt") &&
+                !HasDateTimeValue(dto, "SupervisorAddedAt"))
+            {
+                SetDateTimeValue(dto, "SupervisorAddedAt", now, force: true);
+            }
+
+            SetDateTimeValue(dto, "SupervisorLastModifiedAt", now, force: true);
+        }
+    }
+
+    private static bool HasDateTimeValue(object target, string propertyName)
+    {
+        var prop = target.GetType().GetProperty(propertyName);
+        if (prop == null)
+            return false;
+
+        var value = prop.GetValue(target);
+        if (value == null)
+            return false;
+
+        if (value is DateTime dt)
+            return dt != default;
+
+        if (value is DateTime?)
+        {
+            var ndt = (DateTime?)value;
+            return ndt.HasValue && ndt.Value != default;
+        }
+
+        return false;
+    }
+
+    private static void SetDateTimeValue(object target, string propertyName, DateTime value, bool force = false)
+    {
+        var prop = target.GetType().GetProperty(propertyName);
+        if (prop == null)
+            return;
+
+        var propType = prop.PropertyType;
+        if (propType != typeof(DateTime) && propType != typeof(DateTime?))
+            return;
+
+        if (!force)
+        {
+            var current = prop.GetValue(target);
+            if (current is DateTime dt && dt != default)
+                return;
+            if (current is DateTime?)
+            {
+                var ndt = (DateTime?)current;
+                if (ndt.HasValue && ndt.Value != default)
+                    return;
+            }
+        }
+
+        if (propType == typeof(DateTime))
+        {
+            prop.SetValue(target, value);
+        }
+        else
+        {
+            prop.SetValue(target, (DateTime?)value);
+        }
     }
 }
