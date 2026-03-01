@@ -1,0 +1,9 @@
+# استخدم مع قاعدة بيانات خارجية (بدون حاوية SQL):
+# docker compose -f docker-compose.yml -f docker-compose.external-db.yml up -d
+# حدّد المتغيرات في .env أو -e: ConnectionStrings__DefaultConnection و Jwt__Key
+
+services:
+  sqlserver:
+    profiles: ["with-db"]
+  api:
+    depends_on: []

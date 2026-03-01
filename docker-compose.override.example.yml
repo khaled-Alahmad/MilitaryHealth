@@ -1,0 +1,11 @@
+# انسخ هذا الملف إلى docker-compose.override.yml وعدّل القيم
+# عند استخدام قاعدة بيانات خارجية (خارج Docker) لا تشغّل خدمة sqlserver:
+# احذف أو علّق على قسم sqlserver من docker-compose.yml، أو استخدم:
+# docker compose -f docker-compose.yml -f docker-compose.external-db.yml up -d
+
+version: "3.8"
+services:
+  api:
+    environment:
+      - ConnectionStrings__DefaultConnection=Server=YOUR_SQL_HOST;Database=db_abd789_militaryhealth;User Id=sa;Password=YOUR_PASSWORD;TrustServerCertificate=True
+      - Jwt__Key=YOUR_STRONG_JWT_SECRET

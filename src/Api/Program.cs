@@ -275,10 +275,15 @@ builder.Services.AddControllers()
 var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
+    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var identityDb = scope.ServiceProvider.GetRequiredService<AppIdentityDbContext>();
+    // Run migrations so database and tables exist (e.g. in Docker)
+    await dbContext.Database.MigrateAsync();
+    await identityDb.Database.MigrateAsync();
+
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<int>>>();
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    
+
     await SeedRoles(roleManager);
     await SeedDoctors(dbContext);
     await SeedUsers(userManager);
@@ -289,16 +294,18 @@ app.UseSerilogRequestLogging();
 builder.Services.AddLogging();
 app.UseStaticFiles(); // هذا لــ wwwroot
 
+var filesPath = Path.Combine(builder.Environment.ContentRootPath, "Files");
+if (!Directory.Exists(filesPath))
+    Directory.CreateDirectory(filesPath);
+
 app.UseStaticFiles(new StaticFileOptions
 {
-    FileProvider = new PhysicalFileProvider(
-        Path.Combine(builder.Environment.ContentRootPath, "Files")),
+    FileProvider = new PhysicalFileProvider(filesPath),
     RequestPath = "/Files"
 });
 app.UseDirectoryBrowser(new DirectoryBrowserOptions
 {
-    FileProvider = new PhysicalFileProvider(
-        Path.Combine(builder.Environment.ContentRootPath, "Files")),
+    FileProvider = new PhysicalFileProvider(filesPath),
     RequestPath = "/Files"
 });
 app.UseSwagger();
