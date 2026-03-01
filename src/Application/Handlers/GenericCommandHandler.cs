@@ -1,4 +1,4 @@
-﻿using MapsterMapper;
+using MapsterMapper;
 using MediatR;
 using Application.Abstractions;
 using Application.DTOs;
@@ -35,7 +35,7 @@ public class GenericCommandHandler<TEntity, TDto> :
     public async Task<TDto> Handle(CreateEntityCommand<TEntity, TDto> request, CancellationToken ct)
     {
         var entity = _mapper.Map<TEntity>(request.Dto)
-            ?? throw new InvalidOperationException("Mapping produced null entity.");
+                     ?? throw new InvalidOperationException("Mapping produced null entity.");
 
         if (IsFinalDecisionEntity)
         {
@@ -81,12 +81,12 @@ public class GenericCommandHandler<TEntity, TDto> :
             }
         }
 
-        if (typeof(TEntity).Name.Contains("FinalDecision") 
+        if (typeof(TEntity).Name.Contains("FinalDecision")
             || typeof(TEntity).Name.Contains("SurgicalExam")
             || typeof(TEntity).Name.Contains("OrthopedicExam")
             || typeof(TEntity).Name.Contains("InternalExam")
             || typeof(TEntity).Name.Contains("EyeExam")
-            )
+           )
         {
             var applicantFileProp = typeof(TEntity).GetProperty("ApplicantFileNumber");
             if (applicantFileProp != null && applicantFileProp.PropertyType == typeof(string))
@@ -131,14 +131,15 @@ public class GenericCommandHandler<TEntity, TDto> :
 
                 var value = prop.GetValue(request.Dto);
                 if (value == null)
-                    throw new ArgumentException($"Property '{propName}' on DTO '{dtoType.Name}' cannot be null when updating FinalDecision.");
+                    throw new ArgumentException(
+                        $"Property '{propName}' on DTO '{dtoType.Name}' cannot be null when updating FinalDecision.");
 
                 return value;
             }
 
             var keys = new object[]
             {
-                request.Id,                  // DecisionID from route
+                request.Id, // DecisionID from route
                 GetKey("OrthopedicExamID"),
                 GetKey("SurgicalExamID"),
                 GetKey("InternalExamID"),
@@ -159,9 +160,15 @@ public class GenericCommandHandler<TEntity, TDto> :
 
         ApplyFinalDecisionUpdateTimestamps(entity, dto);
 
-        // update only if value sent
+        // Primary key names to skip when copying from DTO (never overwrite entity ID with request body)
+        var entityName = typeof(TEntity).Name;
+        var keyNames = new[] { "Id", "ID", entityName + "ID" };
+
+        // update only if value sent; skip primary key properties so route id is not overwritten (e.g. applicantID: 0)
         foreach (var prop in typeof(TDto).GetProperties())
         {
+            if (keyNames.Contains(prop.Name, StringComparer.OrdinalIgnoreCase))
+                continue;
             var newValue = prop.GetValue(dto);
             if (newValue != null)
             {
