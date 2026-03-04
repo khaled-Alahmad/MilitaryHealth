@@ -18,11 +18,13 @@ public class GenericCommandHandler<TEntity, TDto> :
     private readonly IFileNumberGenerator<TEntity>? _fileNumberGenerator;
     private readonly IHttpContextAccessor? _httpContextAccessor;
     private readonly IFinalDecisionHistoryRecorder? _historyRecorder;
+    private readonly IAppClock _appClock;
 
     public GenericCommandHandler(
         IRepository<TEntity> repo,
         IArchiveService repoArch,
         IMapper mapper,
+        IAppClock appClock,
         IFileNumberGenerator<TEntity>? fileNumberGenerator = null,
         IHttpContextAccessor? httpContextAccessor = null,
         IFinalDecisionHistoryRecorder? historyRecorder = null) // optional: مسجّل سجل تغيير النتيجة (يُحقَن فقط عند توفره في DI)
@@ -30,6 +32,7 @@ public class GenericCommandHandler<TEntity, TDto> :
         _repo = repo;
         _mapper = mapper;
         _repoArch = repoArch;
+        _appClock = appClock;
         _fileNumberGenerator = fileNumberGenerator;
         _httpContextAccessor = httpContextAccessor;
         _historyRecorder = historyRecorder;
@@ -58,10 +61,10 @@ public class GenericCommandHandler<TEntity, TDto> :
             if (createdAtProp != null && createdAtProp.CanWrite &&
                 (createdAtProp.PropertyType == typeof(DateTime) || createdAtProp.PropertyType == typeof(DateTime?)))
             {
-                var now = DateTime.UtcNow;
+                var now = _appClock.Now;
                 createdAtProp.SetValue(entity, now);
 
-                // set daily queue number starting from 1 each day
+                // set daily queue number starting from 1 each day (local date)
                 var queueProp = typeof(TEntity).GetProperty("QueueNumber");
                 if (queueProp != null && queueProp.CanWrite &&
                     (queueProp.PropertyType == typeof(int) || queueProp.PropertyType == typeof(int?)))
@@ -174,7 +177,7 @@ public class GenericCommandHandler<TEntity, TDto> :
             if (modifiedAtProp != null && modifiedAtProp.CanWrite &&
                 (modifiedAtProp.PropertyType == typeof(DateTime) || modifiedAtProp.PropertyType == typeof(DateTime?)))
             {
-                modifiedAtProp.SetValue(entity, DateTime.UtcNow);
+                modifiedAtProp.SetValue(entity, _appClock.Now);
             }
         }
 
@@ -245,12 +248,12 @@ public class GenericCommandHandler<TEntity, TDto> :
 
         if (CurrentUserIsReceptionist)
         {
-            SetDateTimeValue(entity, "ReceptionAddedAt", DateTime.UtcNow);
+            SetDateTimeValue(entity, "ReceptionAddedAt", _appClock.Now);
         }
 
         if (CurrentUserIsSupervisor)
         {
-            var now = DateTime.UtcNow;
+            var now = _appClock.Now;
             SetDateTimeValue(entity, "SupervisorAddedAt", now);
             SetDateTimeValue(entity, "SupervisorLastModifiedAt", now, force: true);
         }
@@ -265,12 +268,12 @@ public class GenericCommandHandler<TEntity, TDto> :
             !HasDateTimeValue(entity, "ReceptionAddedAt") &&
             !HasDateTimeValue(dto, "ReceptionAddedAt"))
         {
-            SetDateTimeValue(dto, "ReceptionAddedAt", DateTime.UtcNow, force: true);
+            SetDateTimeValue(dto, "ReceptionAddedAt", _appClock.Now, force: true);
         }
 
         if (CurrentUserIsSupervisor)
         {
-            var now = DateTime.UtcNow;
+            var now = _appClock.Now;
             if (!HasDateTimeValue(entity, "SupervisorAddedAt") &&
                 !HasDateTimeValue(dto, "SupervisorAddedAt"))
             {

@@ -1,4 +1,4 @@
-﻿using Application.Common.Extensions;
+using Application.Common.Extensions;
 using Application.DTOs;
 using Infrastructure.Persistence;
 using Infrastructure.Persistence.Models;
@@ -494,11 +494,9 @@ public class Repository<TEntity> : IPagedRepository<TEntity> where TEntity : cla
 
     public async Task<int> GetNextQueueNumberAsync(DateTime date, CancellationToken ct = default)
     {
-        // compute start and end of the day in UTC
+        // compute start and end of the day (date is in app local timezone, same as CreatedAt)
         var dayStart = date.Date;
         var dayEnd = dayStart.AddDays(1);
-
-        // Assuming Applicant.CreatedAt stores UTC
         var max = await _set
             .Where(e => EF.Property<DateTime?>(e, "CreatedAt") >= dayStart && EF.Property<DateTime?>(e, "CreatedAt") < dayEnd)
             .Select(e => EF.Property<int?>(e, "QueueNumber"))

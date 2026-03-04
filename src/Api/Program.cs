@@ -253,6 +253,9 @@ void RegisterGenericHandlers(IServiceCollection services)
 RegisterGenericHandlers(builder.Services);
 builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddHttpContextAccessor();
+builder.Services.Configure<Application.Configuration.AppClockOptions>(
+    builder.Configuration.GetSection(Application.Configuration.AppClockOptions.SectionName));
+builder.Services.AddSingleton<Application.Abstractions.IAppClock, Infrastructure.Services.AppClock>();
 builder.Services.AddScoped<IDoctorQueryService, DoctorQueryService>();
 
 builder.Services.AddScoped<IDoctorService, DoctorService>();
