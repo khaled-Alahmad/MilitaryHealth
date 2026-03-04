@@ -6,6 +6,8 @@ services:
     image: militaryhealth-api:latest
     ports:
       - "8080:8080"
+    volumes:
+      - api_files:/app/Files
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ConnectionStrings__DefaultConnection=${ConnectionStrings__DefaultConnection:-Server=sqlserver;Database=db_abd789_militaryhealth;User Id=sa;Password=YourStrong@Passw0rd;TrustServerCertificate=True}
@@ -37,11 +39,21 @@ services:
 
   frontend:
     image: militaryhealth-frontend:latest
-    ports:
-      - "80:80"
+    expose:
+      - "80"
     depends_on:
       - api
     restart: unless-stopped
 
+  gateway:
+    image: militaryhealth-gateway:latest
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+      - frontend
+    restart: unless-stopped
+
 volumes:
   sqlserver_data:
+  api_files:

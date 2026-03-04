@@ -411,15 +411,15 @@ static async Task SeedUsers(UserManager<ApplicationUser> userManager)
 
     var usersData = new[]
     {
-        new { FullName = "موظف الاستقبال", UserName = "reception", Password = "1234", Role = "Receptionist", DoctorID = (int?)null },
-        new { FullName = "مدير النظام", UserName = "admin", Password = "1234", Role = "Admin", DoctorID = (int?)null },
-        new { FullName = "د. أحمد خليل", UserName = "eye_doc", Password = "1234", Role = "Doctor", DoctorID = (int?)1 },
-        new { FullName = "د. سامر محمود", UserName = "internal_doc", Password = "1234", Role = "Doctor", DoctorID = (int?)2 },
-        new { FullName = "د. رامي حسن", UserName = "surgery_doc", Password = "1234", Role = "Doctor", DoctorID = (int?)3 },
-        new { FullName = "د. يوسف علي", UserName = "ortho_doc", Password = "1234", Role = "Doctor", DoctorID = (int?)4 },
-        new { FullName = "الديوان", UserName = "diwan", Password = "1234", Role = "Diwan", DoctorID = (int?)null },
-        new { FullName = "مشرف النظام", UserName = "supervisor", Password = "1234", Role = "Supervisor", DoctorID = (int?)null },
-        new { FullName = "د. أحمد محمد", UserName = "ear_clinic", Password = "1234", Role = "Doctor", DoctorID = (int?)5 }
+        new { FullName = "موظف الاستقبال", UserName = "reception", Password = "Defdev@2026", Role = "Receptionist", DoctorID = (int?)null },
+        new { FullName = "مدير النظام", UserName = "admin", Password = "Defdev@2026", Role = "Admin", DoctorID = (int?)null },
+        new { FullName = "د. أحمد خليل", UserName = "eye_doc", Password = "Defdev@2026", Role = "Doctor", DoctorID = (int?)1 },
+        new { FullName = "د. سامر محمود", UserName = "internal_doc", Password = "Defdev@2026", Role = "Doctor", DoctorID = (int?)2 },
+        new { FullName = "د. رامي حسن", UserName = "surgery_doc", Password = "Defdev@2026", Role = "Doctor", DoctorID = (int?)3 },
+        new { FullName = "د. يوسف علي", UserName = "ortho_doc", Password = "Defdev@2026", Role = "Doctor", DoctorID = (int?)4 },
+        new { FullName = "الديوان", UserName = "diwan", Password = "Defdev@2026", Role = "Diwan", DoctorID = (int?)null },
+        new { FullName = "مشرف النظام", UserName = "supervisor", Password = "Defdev@2026", Role = "Supervisor", DoctorID = (int?)null },
+        new { FullName = "د. أحمد محمد", UserName = "ear_clinic", Password = "Defdev@2026", Role = "Doctor", DoctorID = (int?)5 }
     };
 
     foreach (var userData in usersData)
