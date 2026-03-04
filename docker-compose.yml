@@ -10,6 +10,8 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8080:8080"
+    volumes:
+      - api_files:/app/Files
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       # غيّر السطر التالي ليتوافق مع السيرفر أو خادم SQL الخارجي
@@ -47,11 +49,25 @@ services:
       # مسار الفرونت: افتراضي ../MilitaryHealth.UI أو حدّد FRONTEND_CONTEXT (مثلاً P:\MilitaryHealth.UI)
       context: ${FRONTEND_CONTEXT:-../MilitaryHealth.UI}
       dockerfile: Dockerfile
-    ports:
-      - "80:80"
+    expose:
+      - "80"
     depends_on:
       - api
     restart: unless-stopped
 
+  # بوابة على المنفذ 80: تمرير /api إلى الـ API و / إلى الفرونت مع client_max_body_size 100M (حل 413)
+  gateway:
+    image: militaryhealth-gateway:latest
+    build:
+      context: ./gateway
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+      - frontend
+    restart: unless-stopped
+
 volumes:
   sqlserver_data:
+  api_files:

@@ -18,6 +18,17 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Allow large file uploads (default 100 MB; set MaxUploadBytes in appsettings to override)
+var maxUploadBytes = builder.Configuration.GetValue<long>("FileUpload:MaxUploadBytes", 100L * 1024 * 1024);
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Limits.MaxRequestBodySize = maxUploadBytes;
+});
+builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = maxUploadBytes;
+});
+
 // Serilog
 builder.Host.UseSerilog((ctx, lc) => lc.ReadFrom.Configuration(ctx.Configuration));
 

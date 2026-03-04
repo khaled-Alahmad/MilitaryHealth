@@ -1,4 +1,4 @@
-﻿using Infrastructure.Identity;
+using Infrastructure.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
@@ -21,6 +21,12 @@ public class RoleAuthorizationMiddleware
         var endpoint = context.GetEndpoint();
         if (endpoint == null)
         {
+            // طلبات الملفات الثابتة /Files/ قد تصل هنا إذا الملف غير موجود — نمرّرها ليعيد الإطار 404 عادي
+            if (context.Request.Path.StartsWithSegments("/Files", StringComparison.OrdinalIgnoreCase))
+            {
+                await _next(context);
+                return;
+            }
             context.Response.StatusCode = StatusCodes.Status404NotFound;
             await WriteJsonResponse(context, 404, "Endpoint not found");
             return;
