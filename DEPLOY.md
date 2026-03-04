@@ -1,5 +1,33 @@
 # نشر المشروع بالسيرفر المحلي (Docker)
 
+## التشغيل المحلي الكامل (API + الفرونت + SQL Server)
+
+للبناء والتشغيل مع مشروع الفرونت (Angular) من مسار منفصل، مثلاً `P:\MilitaryHealth.UI`:
+
+1. **من مجلد المشروع الرئيسي** `P:\MilitaryHealth`:
+   ```powershell
+   cd P:\MilitaryHealth
+   $env:FRONTEND_CONTEXT = "P:\MilitaryHealth.UI"
+   docker compose build
+   docker compose down -v //reset data 
+
+   docker compose up -d
+   ```
+
+2. **الوصول للتطبيق:**
+   - الواجهة (الفرونت): **http://localhost** (منفذ 80)
+   - الـ API مباشرة: **http://localhost:8080**
+   - SQL Server: `localhost:1433` (للاستخدام من أدوات خارجية)
+
+3. **إيقاف التشغيل:**
+   ```powershell
+   docker compose down
+   ```
+
+بدون تعيين `FRONTEND_CONTEXT` يُفترض أن الفرونت في المسار النسبي `../MilitaryHealth.UI` (نفس المستوى فوق مجلد المشروع).
+
+---
+
 ## الخيار 1: رفع الصور عبر GitHub (مُفضّل)
 
 ### على جهازك (بناء الصورة ورفعها إلى GitHub Container Registry)
@@ -96,6 +124,12 @@ docker compose up -d
 2. في هذا المستودع أو في مستودع واحد:
    - إما إضافة الفرونت كخدمة في `docker-compose.yml` مع `build: context: ../frontend-path`.
    - أو بناء صورة الفرونت ورفعها إلى GHCR ثم على السيرفر سحبها وتشغيلها في نفس الـ compose.
+
+---
+
+## النسخ الاحتياطي اليومي
+
+لإعداد نسخ احتياطي يومي تلقائي لقاعدة البيانات **الساعة 1 صباحاً** وحفظه في مجلد على السيرفر، راجع **[BACKUP.md](BACKUP.md)**. يشمل الإعداد سكربتات النسخ، إعداد cron، و**اختبار أولي** للتأكد من أن النسخ يعمل على السيرفر.
 
 ---
 

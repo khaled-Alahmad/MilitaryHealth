@@ -1,4 +1,4 @@
-﻿// Application/DTOs/Applicants/ApplicantDto.cs
+// Application/DTOs/Applicants/ApplicantDto.cs
 using System.ComponentModel.DataAnnotations;
 namespace Application.DTOs;
 
@@ -45,6 +45,8 @@ public class ApplicantDto
 
     public string? DistinctiveMarks { get; set; }
     public DateTime? CreatedAt { get; set; }
+
+    public DateTime? ModifiedAt { get; set; }
 
     public int? QueueNumber { get; set; }
 

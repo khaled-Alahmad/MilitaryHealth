@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Infrastructure.Persistence.Models;
 using Microsoft.EntityFrameworkCore;
@@ -39,6 +39,8 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<EyeExam> EyeExams { get; set; }
 
     public virtual DbSet<FinalDecision> FinalDecisions { get; set; }
+
+    public virtual DbSet<FinalDecisionHistory> FinalDecisionHistories { get; set; }
 
     public virtual DbSet<InternalExam> InternalExams { get; set; }
 
@@ -84,6 +86,7 @@ public partial class AppDbContext : DbContext
                 .HasMaxLength(20)
                 .IsUnicode(false);
             entity.Property(e => e.CreatedAt).HasColumnType("datetime");
+            entity.Property(e => e.ModifiedAt).HasColumnType("datetime");
             entity.Property(e => e.DistinctiveMarks).HasColumnType("text");
             entity.Property(e => e.FileNumber)
                 .HasMaxLength(50)
@@ -405,6 +408,18 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.SurgicalExamID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_FinalDecision_SurgicalExam");
+        });
+
+        modelBuilder.Entity<FinalDecisionHistory>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK_FinalDecisionHistory");
+            entity.ToTable("FinalDecisionHistory");
+            entity.Property(e => e.ApplicantFileNumber).HasMaxLength(50).IsUnicode(false);
+            entity.Property(e => e.PreviousResultDescription).HasMaxLength(100).IsUnicode(true);
+            entity.Property(e => e.NewResultDescription).HasMaxLength(100).IsUnicode(true);
+            entity.Property(e => e.Reason).HasColumnType("nvarchar(max)");
+            entity.Property(e => e.ChangedAt).HasColumnType("datetime");
+            entity.Property(e => e.ChangedBy).HasMaxLength(256).IsUnicode(true);
         });
 
         modelBuilder.Entity<InternalExam>(entity =>

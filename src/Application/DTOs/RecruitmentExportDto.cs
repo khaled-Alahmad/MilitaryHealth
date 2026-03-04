@@ -13,16 +13,23 @@ public class RecruitmentExportDto
 
     /// <summary>رقم الاستمارة</summary>
     public string FileNumber { get; set; } = null!;
-    /// AssociateNumber
+
     public string? AssociateNumber { get; set; }
 
+    /// <summary>الاسم الكامل</summary>
+    public string? FullName { get; set; }
 
+    /// <summary>اسم الأم</summary>
+    public string? MotherName { get; set; }
 
+    /// <summary>الحالة الاجتماعية (وصف)</summary>
+    public string? MaritalStatus { get; set; }
 
+    /// <summary>تاريخ الميلاد</summary>
+    public DateTime? DateOfBirth { get; set; }
 
-  
-
-
+    /// <summary>زمرة الدم</summary>
+    public string? BloodType { get; set; }
 
     /// <summary>اسم مركز التجنيد</summary>
     public string? RecruitmentCenter { get; set; }
@@ -33,9 +40,14 @@ public class RecruitmentExportDto
     /// <summary>تاريخ تقييم المشرف</summary>
     public DateTime? SupervisorEvaluationDate { get; set; }
 
-  
     /// <summary>السبب</summary>
     public string? Reason { get; set; }
+
+    /// <summary>معرف القرار النهائي (للاستخدام في التصدير)</summary>
+    public int? DecisionID { get; set; }
+
+    /// <summary>تاريخ التصدير للتجنيد (للعناصر المُصدَّرة فقط)</summary>
+    public DateTime? ExportedAt { get; set; }
 }
 
 /// <summary>
@@ -66,7 +78,8 @@ public class ExportToRecruitmentResponse
     public bool Success { get; set; }
     public string Message { get; set; } = null!;
     public int ExportedCount { get; set; }
-    public byte[]? PdfFileData { get; set; }
+    /// <summary>Excel file data (.xlsx, UTF-8 / Arabic supported)</summary>
+    public byte[]? FileData { get; set; }
     public string? FileName { get; set; }
 }
 

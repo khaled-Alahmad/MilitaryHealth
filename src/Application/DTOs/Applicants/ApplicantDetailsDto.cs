@@ -1,4 +1,4 @@
-﻿
+
 using Application.DTOs;
 using System.ComponentModel.DataAnnotations;
 
@@ -36,6 +36,8 @@ public class ApplicantDetailsDto
 
     public string? DistinctiveMarks { get; set; }
     public DateTime? CreatedAt { get; set; }
+
+    public DateTime? ModifiedAt { get; set; }
 
     public int? QueueNumber { get; set; }
 

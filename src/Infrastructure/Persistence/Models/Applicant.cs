@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace Infrastructure.Persistence.Models;
@@ -40,6 +40,8 @@ public partial class Applicant
     public string? DistinctiveMarks { get; set; }
 
     public DateTime? CreatedAt { get; set; }
+
+    public DateTime? ModifiedAt { get; set; }
 
     public int? QueueNumber { get; set; }
 

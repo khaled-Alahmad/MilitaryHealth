@@ -38,15 +38,33 @@ public class RecruitmentExportController : ControllerBase
     }
 
     /// <summary>
-    /// Export applicants to recruitment and generate protected PDF
-    /// تصدير المنتسبين لمركز التجنيد وإنشاء PDF محمي
+    /// Get list of already exported to recruitment (لتحميلها مرة ثانية)
+    /// الحصول على قائمة الملفات المُصدَّرة سابقاً للتجنيد
+    /// </summary>
+    [HttpGet("exported")]
+    public async Task<ActionResult<List<RecruitmentExportDto>>> GetExported()
+    {
+        try
+        {
+            var list = await _exportService.GetExportedToRecruitmentAsync();
+            return Ok(list);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = $"حدث خطأ: {ex.Message}" });
+        }
+    }
+
+    /// <summary>
+    /// Export applicants to recruitment and generate Excel file (UTF-8 / Arabic supported)
+    /// تصدير المنتسبين لمركز التجنيد وإنشاء ملف إكسيل يدعم العربية
     /// </summary>
     /// <param name="request">
     /// Export request with:
     /// - DecisionIds: list of specific decision IDs to export
     /// - ExportAll: true to export all non-exported decisions
     /// </param>
-    /// <returns>PDF file with exported data</returns>
+    /// <returns>Excel file (.xlsx) with exported data</returns>
     [HttpPost("export")]
     public async Task<IActionResult> ExportToRecruitment([FromBody] ExportToRecruitmentRequest request)
     {
@@ -59,10 +77,9 @@ public class RecruitmentExportController : ControllerBase
                 return BadRequest(new { message = result.Message });
             }
 
-            // Return PDF file
             return File(
-                result.PdfFileData!,
-                "application/pdf",
+                result.FileData!,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 result.FileName
             );
         }
@@ -93,10 +110,9 @@ public class RecruitmentExportController : ControllerBase
                 return BadRequest(new { message = result.Message });
             }
 
-            // Return PDF file
             return File(
-                result.PdfFileData!,
-                "application/pdf",
+                result.FileData!,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 result.FileName
             );
         }

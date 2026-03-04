@@ -1,11 +1,9 @@
 using Application.Abstractions;
 using Application.DTOs;
+using ClosedXML.Excel;
 using Infrastructure.Persistence;
 using Infrastructure.Persistence.Models;
 using Microsoft.EntityFrameworkCore;
-using QuestPDF.Fluent;
-using QuestPDF.Helpers;
-using QuestPDF.Infrastructure;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,14 +18,10 @@ public class RecruitmentExportService : IRecruitmentExportService
     public RecruitmentExportService(AppDbContext context)
     {
         _context = context;
-        
-        // Set QuestPDF license (Community license for free use)
-        QuestPDF.Settings.License = LicenseType.Community;
     }
 
     public async Task<List<RecruitmentExportDto>> GetPendingExportsAsync()
     {
-        // First, get the data from database
         var pendingData = await _context.FinalDecisions
             .Include(fd => fd.Result)
             .Where(fd => !fd.IsExportedToRecruitment)
@@ -38,38 +32,72 @@ public class RecruitmentExportService : IRecruitmentExportService
             .OrderBy(x => x.Applicant.CreatedAt)
             .ToListAsync();
 
-        // Then, apply sequence numbering in memory
         var pendingExports = pendingData.Select((x, index) => new RecruitmentExportDto
         {
             SequenceNumber = index + 1,
             FileNumber = x.Applicant.FileNumber,
             AssociateNumber = x.Applicant.AssociateNumber,
+            FullName = x.Applicant.FullName,
+            MotherName = x.Applicant.MotherName,
+            MaritalStatus = x.Applicant.MaritalStatus?.Description,
+            DateOfBirth = x.Applicant.DateOfBirth,
+            BloodType = x.Applicant.BloodType,
             RecruitmentCenter = x.Applicant.RecruitmentCenter,
-           
             Result = x.FinalDecision.Result?.Description,
             SupervisorEvaluationDate = x.FinalDecision.SupervisorLastModifiedAt ?? x.FinalDecision.SupervisorAddedAt,
-            Reason = x.FinalDecision.Reason
+            Reason = x.FinalDecision.Reason,
+            DecisionID = x.FinalDecision.DecisionID
         }).ToList();
 
         return pendingExports;
+    }
+
+    public async Task<List<RecruitmentExportDto>> GetExportedToRecruitmentAsync()
+    {
+        var exportedData = await _context.FinalDecisions
+            .Include(fd => fd.Result)
+            .Where(fd => fd.IsExportedToRecruitment)
+            .Join(_context.Applicants.Include(a => a.MaritalStatus),
+                fd => fd.ApplicantFileNumber,
+                app => app.FileNumber,
+                (fd, app) => new { FinalDecision = fd, Applicant = app })
+            .OrderByDescending(x => x.FinalDecision.ExportedAt)
+            .ToListAsync();
+
+        var list = exportedData.Select((x, index) => new RecruitmentExportDto
+        {
+            SequenceNumber = index + 1,
+            FileNumber = x.Applicant.FileNumber,
+            AssociateNumber = x.Applicant.AssociateNumber,
+            FullName = x.Applicant.FullName,
+            MotherName = x.Applicant.MotherName,
+            MaritalStatus = x.Applicant.MaritalStatus?.Description,
+            DateOfBirth = x.Applicant.DateOfBirth,
+            BloodType = x.Applicant.BloodType,
+            RecruitmentCenter = x.Applicant.RecruitmentCenter,
+            Result = x.FinalDecision.Result?.Description,
+            SupervisorEvaluationDate = x.FinalDecision.SupervisorLastModifiedAt ?? x.FinalDecision.SupervisorAddedAt,
+            Reason = x.FinalDecision.Reason,
+            DecisionID = x.FinalDecision.DecisionID,
+            ExportedAt = x.FinalDecision.ExportedAt
+        }).ToList();
+
+        return list;
     }
 
     public async Task<ExportToRecruitmentResponse> ExportToRecruitmentAsync(ExportToRecruitmentRequest request)
     {
         try
         {
-            // Get decisions to export
             IQueryable<FinalDecision> query = _context.FinalDecisions
                 .Include(fd => fd.Result);
 
             if (request.ExportAll)
             {
-                // Export all non-exported
                 query = query.Where(fd => !fd.IsExportedToRecruitment);
             }
             else if (request.DecisionIds != null && request.DecisionIds.Any())
             {
-                // Export specific decisions
                 query = query.Where(fd => request.DecisionIds.Contains(fd.DecisionID));
             }
             else
@@ -94,7 +122,6 @@ public class RecruitmentExportService : IRecruitmentExportService
                 };
             }
 
-            // Get applicant data with marital status
             var applicantFileNumbers = decisionsToExport.Select(d => d.ApplicantFileNumber).ToList();
             var applicantsData = await _context.Applicants
                 .Include(a => a.MaritalStatus)
@@ -102,7 +129,6 @@ public class RecruitmentExportService : IRecruitmentExportService
                 .OrderBy(a => a.CreatedAt)
                 .ToListAsync();
 
-            // Prepare export data
             var exportData = new List<RecruitmentExportDto>();
             int sequenceNumber = 1;
 
@@ -124,10 +150,8 @@ public class RecruitmentExportService : IRecruitmentExportService
                 }
             }
 
-            // Generate protected PDF
-            var pdfData = GenerateProtectedPdf(exportData);
+            var excelData = GenerateExcel(exportData);
 
-            // Mark decisions as exported
             var exportDate = DateTime.Now;
             foreach (var decision in decisionsToExport)
             {
@@ -137,14 +161,14 @@ public class RecruitmentExportService : IRecruitmentExportService
 
             await _context.SaveChangesAsync();
 
-            var fileName = $"Recruitment_Export_{exportDate:yyyyMMdd_HHmmss}.pdf";
+            var fileName = $"Recruitment_Export_{exportDate:yyyyMMdd_HHmmss}.xlsx";
 
             return new ExportToRecruitmentResponse
             {
                 Success = true,
                 Message = $"تم تصدير {exportData.Count} منتسب بنجاح",
                 ExportedCount = exportData.Count,
-                PdfFileData = pdfData,
+                FileData = excelData,
                 FileName = fileName
             };
         }
@@ -159,117 +183,52 @@ public class RecruitmentExportService : IRecruitmentExportService
         }
     }
 
-    private byte[] GenerateProtectedPdf(List<RecruitmentExportDto> data)
+    /// <summary>
+    /// Generates Excel file with UTF-8 / Arabic support (RTL sheet).
+    /// </summary>
+    private static byte[] GenerateExcel(List<RecruitmentExportDto> data)
     {
-        var document = Document.Create(container =>
+        using var workbook = new XLWorkbook();
+        var ws = workbook.Worksheets.Add("تصدير للتجنيد");
+
+        // دعم العربية: اتجاه الورقة من اليمين لليسار
+        ws.RightToLeft = true;
+
+        // عنوان التقرير
+        ws.Cell(1, 1).Value = "الجمهورية العربية السورية";
+        ws.Range(1, 1, 1, 7).Merge().Style.Font.SetBold().Font.SetFontSize(14).Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+        ws.Cell(2, 1).Value = "وزارة الدفاع - ادارة الخدمات الطبية";
+        ws.Range(2, 1, 2, 7).Merge().Style.Font.SetBold().Font.SetFontSize(12).Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+
+        int row = 4;
+
+        // رأس الجدول
+        var headers = new[] { "التعداد", "رقم الاستمارة", "رقم التجنيد", "مركز التجنيد", "النتيجة", "تاريخ التقييم", "السبب" };
+        for (int col = 1; col <= headers.Length; col++)
         {
-            container.Page(page =>
-            {
-                page.Size(PageSizes.A4.Landscape()); // عرضي للحصول على مساحة أكبر
-                page.Margin(1, Unit.Centimetre);
-                page.DefaultTextStyle(x => x.FontSize(9).FontFamily("Arial"));
+            ws.Cell(row, col).Value = headers[col - 1];
+            ws.Cell(row, col).Style.Font.SetBold().Fill.SetBackgroundColor(XLColor.LightGray);
+        }
+        row++;
 
-                // Header
-                page.Header().Element(ComposeHeader);
-
-                // Content - Table
-                page.Content().Element(content => ComposeContent(content, data));
-
-                // Footer
-                page.Footer().AlignCenter().Text(text =>
-                {
-                    text.Span("تم الإنشاء بتاريخ: ");
-                    text.Span(DateTime.Now.ToString("yyyy/MM/dd - HH:mm"));
-                    text.Span(" | ");
-                    text.CurrentPageNumber();
-                    text.Span(" / ");
-                    text.TotalPages();
-                });
-            });
-        });
-
-        // Generate PDF with metadata
-        var pdfBytes = document.GeneratePdf();
-
-        return pdfBytes;
-    }
-
-    private void ComposeHeader(IContainer container)
-    {
-        container.Column(column =>
+        // صفوف البيانات
+        foreach (var item in data)
         {
-            column.Item().AlignCenter().Text("الجمهورية العربية السورية")
-                .FontSize(14).Bold().FontFamily("Arial");
-            
-            column.Item().AlignCenter().Text("وزارة الدفاع - ادارة الخدمات الطبية")
-                .FontSize(12).SemiBold().FontFamily("Arial");
-            
-         
-            
-            column.Item().PaddingVertical(5).LineHorizontal(1);
-        });
-    }
+            ws.Cell(row, 1).Value = item.SequenceNumber;
+            ws.Cell(row, 2).Value = item.FileNumber ?? "-";
+            ws.Cell(row, 3).Value = item.AssociateNumber ?? "-";
+            ws.Cell(row, 4).Value = item.RecruitmentCenter ?? "-";
+            ws.Cell(row, 5).Value = item.Result ?? "-";
+            ws.Cell(row, 6).Value = item.SupervisorEvaluationDate?.ToString("yyyy/MM/dd") ?? "-";
+            ws.Cell(row, 7).Value = item.Reason ?? "-";
+            row++;
+        }
 
-    private void ComposeContent(IContainer container, List<RecruitmentExportDto> data)
-    {
-        container.Table(table =>
-        {
-            // Define columns
-            table.ColumnsDefinition(columns =>
-            {
-                columns.ConstantColumn(30);  // التعداد
-                columns.ConstantColumn(80);  // رقم الاستمارة
-                columns.RelativeColumn(2);   // رقم التجنيد
-                columns.RelativeColumn(1);   // المركز
-                columns.ConstantColumn(60);  // النتيجة
-                columns.ConstantColumn(70);  // تاريخ التقييم
-                columns.RelativeColumn(1.5f); // السبب
-            });
+        // عرض الأعمدة تلقائياً
+        ws.Columns().AdjustToContents();
 
-            // Header row
-            table.Header(header =>
-            {
-                header.Cell().Element(CellStyle).AlignCenter().Text("التعداد").Bold();
-                header.Cell().Element(CellStyle).AlignCenter().Text("رقم الاستمارة").Bold();
-                header.Cell().Element(CellStyle).AlignCenter().Text("رقم التجنيد").Bold();
-                header.Cell().Element(CellStyle).AlignCenter().Text("مركز التجنيد").Bold();
-                header.Cell().Element(CellStyle).AlignCenter().Text("النتيجة").Bold();
-                header.Cell().Element(CellStyle).AlignCenter().Text("تاريخ التقييم").Bold();
-                header.Cell().Element(CellStyle).AlignCenter().Text("السبب").Bold();
-
-                static IContainer CellStyle(IContainer container)
-                {
-                    return container
-                        .Border(1)
-                        .BorderColor(Colors.Grey.Darken2)
-                        .Background(Colors.Grey.Lighten3)
-                        .PaddingVertical(5)
-                        .PaddingHorizontal(3);
-                }
-            });
-
-            // Data rows
-            foreach (var item in data)
-            {
-                table.Cell().Element(CellStyle).AlignCenter().Text(item.SequenceNumber.ToString());
-                table.Cell().Element(CellStyle).AlignRight().Text(item.FileNumber ?? "-");
-                table.Cell().Element(CellStyle).AlignRight().Text(item.AssociateNumber ?? "-");
-                table.Cell().Element(CellStyle).AlignRight().Text(item.RecruitmentCenter ?? "-");
-                table.Cell().Element(CellStyle).AlignCenter().Text(item.Result ?? "-");
-                table.Cell().Element(CellStyle).AlignCenter()
-                    .Text(item.SupervisorEvaluationDate?.ToString("yyyy/MM/dd") ?? "-");
-                table.Cell().Element(CellStyle).AlignRight().Text(item.Reason ?? "-");
-
-                static IContainer CellStyle(IContainer container)
-                {
-                    return container
-                        .Border(1)
-                        .BorderColor(Colors.Grey.Lighten2)
-                        .PaddingVertical(3)
-                        .PaddingHorizontal(3);
-                }
-            }
-        });
+        using var stream = new System.IO.MemoryStream();
+        workbook.SaveAs(stream);
+        return stream.ToArray();
     }
 }
-

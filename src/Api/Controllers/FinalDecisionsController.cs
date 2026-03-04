@@ -1,5 +1,6 @@
-﻿
+using Application.Abstractions;
 using Application.DTOs;
+using Application.DTOs.FinalDecisions;
 using Infrastructure.Persistence.Models;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -14,10 +15,12 @@ namespace Api.Controllers
     public class FinalDecisionsController : ControllerBase
     {
         private readonly IMediator _mediator;
+        private readonly IFinalDecisionHistoryQuery _historyQuery;
 
-        public FinalDecisionsController(IMediator mediator)
+        public FinalDecisionsController(IMediator mediator, IFinalDecisionHistoryQuery historyQuery)
         {
             _mediator = mediator;
+            _historyQuery = historyQuery;
         }
 
         // GET: api/Doctors
@@ -50,6 +53,41 @@ namespace Api.Controllers
 
             var result = await _mediator.Send(query);
             return Ok(ApiResult.Ok(result, "Fetched all data!", 200, HttpContext.TraceIdentifier));
+        }
+
+        /// <summary>
+        /// سجل تغيير النتيجة النهائية لرقم ملف منتسب (كان مرفوض → صار مقبول).
+        /// </summary>
+        [HttpGet("History")]
+        public async Task<IActionResult> GetHistory([FromQuery] string applicantFileNumber)
+        {
+            if (string.IsNullOrWhiteSpace(applicantFileNumber))
+                return BadRequest(ApiResult.Fail("applicantFileNumber is required", 400, null, HttpContext.TraceIdentifier));
+            var list = await _historyQuery.GetByApplicantFileNumberAsync(applicantFileNumber, HttpContext.RequestAborted);
+            return Ok(ApiResult.Ok(list, "Fetched.", 200, HttpContext.TraceIdentifier));
+        }
+
+        /// <summary>
+        /// Get final decisions by applicant file numbers (e.g. for supervisor list - النتيجة النهائية).
+        /// </summary>
+        [HttpGet("ByFileNumbers")]
+        public async Task<IActionResult> GetByFileNumbers([FromQuery] List<string> fileNumbers)
+        {
+            if (fileNumbers == null || !fileNumbers.Any())
+            {
+                return Ok(ApiResult.Ok(new PagedResult<FinalDecisionDto> { Items = new List<FinalDecisionDto>(), TotalCount = 0, Page = 1, PageSize = 0 }, "Fetched.", 200, HttpContext.TraceIdentifier));
+            }
+            Expression<Func<FinalDecision, bool>> filterExpr = fd => fileNumbers.Contains(fd.ApplicantFileNumber);
+            var query = new GetEntitiesQuery<FinalDecision, FinalDecisionDto>(
+                filterExpr,
+                null,
+                null,
+                false,
+                1,
+                fileNumbers.Count + 100,
+                new Expression<Func<FinalDecision, object>>[] { b => b.Result! });
+            var result = await _mediator.Send(query);
+            return Ok(ApiResult.Ok(result, "Fetched.", 200, HttpContext.TraceIdentifier));
         }
 
         [HttpGet("{id}")]

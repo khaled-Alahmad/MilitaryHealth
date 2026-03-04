@@ -32,6 +32,7 @@ services:
       - "1433:1433"
     volumes:
       - sqlserver_data:/var/opt/mssql
+      - ./backups:/backups
     healthcheck:
       test: ["CMD-SHELL", "timeout 3 bash -c '</dev/tcp/localhost/1433' || exit 1"]
       interval: 10s
@@ -43,7 +44,8 @@ services:
   frontend:
     image: militaryhealth-frontend:latest
     build:
-      context: ../MilitaryHealth.UI
+      # مسار الفرونت: افتراضي ../MilitaryHealth.UI أو حدّد FRONTEND_CONTEXT (مثلاً P:\MilitaryHealth.UI)
+      context: ${FRONTEND_CONTEXT:-../MilitaryHealth.UI}
       dockerfile: Dockerfile
     ports:
       - "80:80"

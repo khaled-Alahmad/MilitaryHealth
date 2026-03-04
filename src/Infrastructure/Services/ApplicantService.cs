@@ -1,4 +1,4 @@
-﻿using Application.DTOs;
+using Application.DTOs;
 using Infrastructure.Persistence;
 using Infrastructure.Persistence.Models;
 using Microsoft.EntityFrameworkCore;
@@ -223,6 +223,7 @@ public class ApplicantService : IApplicantService
             Tattoo = applicant.Tattoo,
             DistinctiveMarks = applicant.DistinctiveMarks,
             CreatedAt = applicant.CreatedAt,
+            ModifiedAt = applicant.ModifiedAt,
             QueueNumber = applicant.QueueNumber,
             MaritalStatus = maritalStatus,
             Investigation = investigation,
@@ -268,6 +269,7 @@ public class ApplicantService : IApplicantService
             Tattoo = applicant.Tattoo,
             DistinctiveMarks = applicant.DistinctiveMarks,
             CreatedAt = applicant.CreatedAt,
+            ModifiedAt = applicant.ModifiedAt,
             MaritalStatus = maritalStatus,
         };
     }

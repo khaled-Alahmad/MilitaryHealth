@@ -1,4 +1,4 @@
-﻿
+
 using Application.DTOs;
 using Infrastructure.Persistence.Models;
 using MediatR;
@@ -24,6 +24,8 @@ namespace Api.Controllers
         [HttpGet]
         public async Task<IActionResult> Get(
             [FromQuery] string? filter = null,
+            [FromQuery] DateTime? fromDate = null,
+            [FromQuery] DateTime? toDate = null,
             [FromQuery] string? sortBy = null,
             [FromQuery] bool sortDesc = false,
             [FromQuery] int page = 1,
@@ -34,6 +36,20 @@ namespace Api.Controllers
             if (!string.IsNullOrWhiteSpace(filter))
             {
                 filterExpr = a => a.FullName.Contains(filter!) || a.FileNumber.Contains(filter!);
+            }
+
+            if (fromDate.HasValue)
+            {
+                var from = fromDate.Value.Date;
+                var dateFromExpr = (Expression<Func<Applicant, bool>>)(a => a.CreatedAt >= from);
+                filterExpr = filterExpr == null ? dateFromExpr : Repository<Applicant>.CombineFilters(filterExpr, dateFromExpr);
+            }
+
+            if (toDate.HasValue)
+            {
+                var to = toDate.Value.Date.AddDays(1).AddTicks(-1);
+                var dateToExpr = (Expression<Func<Applicant, bool>>)(a => a.CreatedAt <= to);
+                filterExpr = filterExpr == null ? dateToExpr : Repository<Applicant>.CombineFilters(filterExpr, dateToExpr);
             }
 
             var query = new GetEntitiesQuery<Applicant, ApplicantDto>(

@@ -17,19 +17,22 @@ public class GenericCommandHandler<TEntity, TDto> :
     private readonly IMapper _mapper;
     private readonly IFileNumberGenerator<TEntity>? _fileNumberGenerator;
     private readonly IHttpContextAccessor? _httpContextAccessor;
+    private readonly IFinalDecisionHistoryRecorder? _historyRecorder;
 
     public GenericCommandHandler(
         IRepository<TEntity> repo,
         IArchiveService repoArch,
         IMapper mapper,
         IFileNumberGenerator<TEntity>? fileNumberGenerator = null,
-        IHttpContextAccessor? httpContextAccessor = null)
+        IHttpContextAccessor? httpContextAccessor = null,
+        IFinalDecisionHistoryRecorder? historyRecorder = null) // optional: مسجّل سجل تغيير النتيجة (يُحقَن فقط عند توفره في DI)
     {
         _repo = repo;
         _mapper = mapper;
         _repoArch = repoArch;
         _fileNumberGenerator = fileNumberGenerator;
         _httpContextAccessor = httpContextAccessor;
+        _historyRecorder = historyRecorder;
     }
 
     public async Task<TDto> Handle(CreateEntityCommand<TEntity, TDto> request, CancellationToken ct)
@@ -158,16 +161,33 @@ public class GenericCommandHandler<TEntity, TDto> :
 
         var dto = request.Dto;
 
+        int? oldResultId = null;
+        if (IsFinalDecisionEntity)
+            oldResultId = GetPropertyValue<int?>(entity, "ResultID");
+
         ApplyFinalDecisionUpdateTimestamps(entity, dto);
 
-        // Primary key names to skip when copying from DTO (never overwrite entity ID with request body)
+        // تواريخ من النظام: عند التعديل نحدّث ModifiedAt ولا نسمح بالكتابة على CreatedAt/ModifiedAt/FileNumber من الطلب
+        if (typeof(TEntity).Name.Contains("Applicant"))
+        {
+            var modifiedAtProp = typeof(TEntity).GetProperty("ModifiedAt");
+            if (modifiedAtProp != null && modifiedAtProp.CanWrite &&
+                (modifiedAtProp.PropertyType == typeof(DateTime) || modifiedAtProp.PropertyType == typeof(DateTime?)))
+            {
+                modifiedAtProp.SetValue(entity, DateTime.UtcNow);
+            }
+        }
+
+        // Primary key and system-managed fields: never overwrite from request body
         var entityName = typeof(TEntity).Name;
         var keyNames = new[] { "Id", "ID", entityName + "ID" };
+        var systemManagedNames = new[] { "CreatedAt", "ModifiedAt", "FileNumber", "QueueNumber" };
 
-        // update only if value sent; skip primary key properties so route id is not overwritten (e.g. applicantID: 0)
+        // update only if value sent; skip primary key and system-managed properties
         foreach (var prop in typeof(TDto).GetProperties())
         {
-            if (keyNames.Contains(prop.Name, StringComparer.OrdinalIgnoreCase))
+            if (keyNames.Contains(prop.Name, StringComparer.OrdinalIgnoreCase) ||
+                systemManagedNames.Contains(prop.Name, StringComparer.OrdinalIgnoreCase))
                 continue;
             var newValue = prop.GetValue(dto);
             if (newValue != null)
@@ -175,6 +195,23 @@ public class GenericCommandHandler<TEntity, TDto> :
                 var entityProp = typeof(TEntity).GetProperty(prop.Name);
                 if (entityProp != null)
                     entityProp.SetValue(entity, newValue);
+            }
+        }
+
+        // عند تعديل القرار النهائي من المشرف: إعادة السماح بالتصدير + تسجيل السجل (كان مرفوض → صار مقبول)
+        if (IsFinalDecisionEntity)
+        {
+            SetValue(entity, "IsExportedToRecruitment", false);
+            SetValue(entity, "ExportedAt", null);
+
+            var newResultId = GetPropertyValue<int?>(entity, "ResultID");
+            if (_historyRecorder != null && (oldResultId != newResultId || (oldResultId.HasValue != newResultId.HasValue)))
+            {
+                var decisionId = GetPropertyValue<int>(entity, "DecisionID");
+                var fileNumber = GetPropertyValue<string>(entity, "ApplicantFileNumber") ?? "";
+                var reason = GetPropertyValue<string>(dto, "Reason");
+                var changedBy = _httpContextAccessor?.HttpContext?.User?.Identity?.Name;
+                await _historyRecorder.RecordAsync(decisionId, fileNumber, oldResultId, newResultId, reason, changedBy, ct);
             }
         }
 
@@ -297,5 +334,22 @@ public class GenericCommandHandler<TEntity, TDto> :
         {
             prop.SetValue(target, (DateTime?)value);
         }
+    }
+
+    private static void SetValue(object target, string propertyName, object? value)
+    {
+        var prop = target.GetType().GetProperty(propertyName);
+        if (prop != null && prop.CanWrite)
+            prop.SetValue(target, value);
+    }
+
+    private static T? GetPropertyValue<T>(object target, string propertyName)
+    {
+        var prop = target.GetType().GetProperty(propertyName);
+        if (prop == null) return default;
+        var value = prop.GetValue(target);
+        if (value == null) return default;
+        if (value is T typed) return typed;
+        try { return (T)Convert.ChangeType(value, typeof(T)); } catch { return default; }
     }
 }

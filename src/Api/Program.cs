@@ -260,6 +260,8 @@ builder.Services.AddScoped<IDoctorService, DoctorService>();
 builder.Services.AddScoped<IApplicantService, ApplicantService>();
 builder.Services.AddScoped<IArchiveService, ArchiveService>();
 builder.Services.AddScoped<IRecruitmentExportService, RecruitmentExportService>();
+builder.Services.AddScoped<Application.Abstractions.IFinalDecisionHistoryRecorder, Infrastructure.Services.FinalDecisionHistoryRecorder>();
+builder.Services.AddScoped<Application.Abstractions.IFinalDecisionHistoryQuery, Infrastructure.Services.FinalDecisionHistoryQuery>();
 
 builder.Services.AddControllers()
     .AddJsonOptions(o =>
